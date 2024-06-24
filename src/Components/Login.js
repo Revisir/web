@@ -1,0 +1,30 @@
+import { signInWithRedirect } from "aws-amplify/auth";
+
+function Login() {
+  return (
+    <>
+      <div className="container text-center">
+        <div className="card w-md-25 m-auto position-absolute top-50 start-50 translate-middle" style={{ background: "#f6f3eb" }}>
+          <div className="card-body p-4">
+            <h5 className="card-title p-2 mb-4 mt-3">Welcome to Reviser App</h5>
+            <button
+              className="btn my-2 w-100"
+              style={{ background: "#FB7B76", color: "white" }}
+              onClick={() => {
+                document.getElementById("loadingButton").classList.remove("visually-hidden");
+                document.getElementById("loginButtonText").classList.add("visually-hidden");
+                signInWithRedirect();
+              }}
+            >
+              <span id="loadingButton" className="visually-hidden spinner-border spinner-border-sm" aria-hidden="true"></span>
+              <span id="loginButtonText" className="" role="status">Login</span>
+            </button>
+          </div>
+          <div className="card-footer text-body-secondary">App by Rjnishant</div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+export default Login
