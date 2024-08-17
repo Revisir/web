@@ -1,4 +1,3 @@
-
 import TodaysList from "./TopicList";
 import Stats from "./Stats";
 
@@ -21,16 +20,14 @@ function ListTabs() {
             Stats
           </button>
         </li>
-        <li className="nav-item ms-4" role="presentation">
-          <button className="btn btn-primary">Add</button>
-        </li>
       </ul>
+
       <div className="tab-content" id="myTabContent">
         <div className="tab-pane fade show active" id="todayList-tab-pane" role="tabpanel" aria-labelledby="todayList-tab" tabIndex="0">
-          {<TodaysList today={true} />}
+          {<TodaysList id="todayList" today={true} />}
         </div>
         <div className="tab-pane fade" id="fullList-tab-pane" role="tabpanel" aria-labelledby="fullList-tab" tabIndex="1">
-          {<TodaysList />}
+          {<TodaysList id="fullList" />}
         </div>
         <div className="tab-pane fade" id="stats-tab-pane" role="tabpanel" aria-labelledby="stats-tab" tabIndex="20">
           {<Stats />}
@@ -40,4 +37,4 @@ function ListTabs() {
   );
 }
 
-export default ListTabs
+export default ListTabs;

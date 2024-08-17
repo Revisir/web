@@ -7,8 +7,8 @@ exports.authConfig = {
         oauth: {
           domain: "reviser530.auth.ap-south-1.amazoncognito.com",
           redirectSignIn: ["http://localhost:3000/callback"],
-          redirectSignOut: ["http://localhost:3000/"],
-          scopes: ["phone", "email", "openid","profile"],
+          redirectSignOut: ["http://localhost:3000"],
+          scopes: ["phone", "email", "openid", "profile"],
           responseType: "code",
         },
       },

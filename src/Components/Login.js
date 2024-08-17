@@ -2,9 +2,10 @@ import { signInWithRedirect } from "aws-amplify/auth";
 
 function Login() {
   return (
+    //TODO important responsivness
     <>
-      <div className="container text-center">
-        <div className="card w-md-25 m-auto position-absolute top-50 start-50 translate-middle" style={{ background: "#f6f3eb" }}>
+      <div className="container ">
+        <div className="card text-center" style={{ background: "#f6f3eb" }}>
           <div className="card-body p-4">
             <h5 className="card-title p-2 mb-4 mt-3">Welcome to Reviser App</h5>
             <button
@@ -17,7 +18,9 @@ function Login() {
               }}
             >
               <span id="loadingButton" className="visually-hidden spinner-border spinner-border-sm" aria-hidden="true"></span>
-              <span id="loginButtonText" className="" role="status">Login</span>
+              <span id="loginButtonText" className="" role="status">
+                Login
+              </span>
             </button>
           </div>
           <div className="card-footer text-body-secondary">App by Rjnishant</div>
@@ -27,4 +30,4 @@ function Login() {
   );
 }
 
-export default Login
+export default Login;

@@ -1,10 +1,11 @@
-import { Axios } from "axios";
+
+import axios from "axios";
 import { userName, userToken } from "../constants";
 import { signOut } from "aws-amplify/auth";
 const baseUrl = "http://localhost:5000";
 
 export const AxiosInstancePrivate = () => {
-  const axiosInstance = Axios.create({
+  const axiosInstance = new axios.create({
     baseURL: baseUrl,
   });
   axiosInstance.interceptors.response.use(
@@ -13,8 +14,8 @@ export const AxiosInstancePrivate = () => {
     },
     (error) => {
       if (error.response && error.response.status === 401) {
-        localStorage.removeItem(userToken);
-        localStorage.removeItem(userName);
+        sessionStorage.removeItem(userToken);
+        sessionStorage.removeItem(userName);
         signOut().then(() => {
           window.location.href = "/";
         });
@@ -25,7 +26,7 @@ export const AxiosInstancePrivate = () => {
   axiosInstance.interceptors.request.use((config) => {
     config.headers = {
       ...config.headers,
-      Authorization: `Bearer ${localStorage.getItem(userToken)}`,
+      Authorization: `Bearer ${sessionStorage.getItem(userToken)}`,
       CurrentDate: new Date().toISOString().slice(0, 10),
     };
     return config;

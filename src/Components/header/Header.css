@@ -1,0 +1,33 @@
+.header__icon:hover {
+  cursor: pointer;
+  border-radius: 50%;
+  color: #fd5d68;
+}
+.popUp__addTopic {
+  position: fixed;
+  z-index: 100;
+  margin: 20px;
+  bottom: 0px;
+  right: 0px;
+  border-radius: 50%;
+}
+.popUp__addTopic:hover {
+  color: #fd5d68;
+}
+.profile {
+  position: relative;
+}
+.profile__dropdown {
+  position: absolute;
+  background-color: beige;
+  padding: 10px;
+  right: 0px;
+  visibility: hidden;
+}
+.profile:hover .profile__dropdown {
+  visibility: visible;
+}
+.profile__dropdown ul {
+  padding: 0px;
+  list-style: none;
+}
