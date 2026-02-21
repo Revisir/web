@@ -1,24 +1,28 @@
-import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
-import App from "./App";
+import App from "./App.jsx";
 // import reportWebVitals from "./reportWebVitals";
 import { BrowserRouter } from "react-router-dom";
-import { Amplify } from "aws-amplify";
-import { authConfig } from "./config";
-import { cognitoUserPoolsTokenProvider } from "aws-amplify/auth/cognito";
+import "bootstrap/dist/css/bootstrap.min.css";
+import { AuthProvider } from "react-oidc-context";
 
-
-Amplify.configure(authConfig);
-cognitoUserPoolsTokenProvider.setKeyValueStorage(sessionStorage)
+const cognitoAuthConfig = {
+  authority: "https://cognito-idp.ap-south-1.amazonaws.com/ap-south-1_kAEibA6fs",
+  client_id: "6chhv3rf7dik3j5gbjic2f9g82",
+  redirect_uri: "http://localhost:5173/callback",
+  response_type: "code",
+  scope: "email openid phone",
+};
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
-  <React.StrictMode>
+  // <React.StrictMode>
+  <AuthProvider {...cognitoAuthConfig}>
     <BrowserRouter>
       <App />
     </BrowserRouter>
-  </React.StrictMode>
+  </AuthProvider>,
+  // </React.StrictMode>
 );
 
 // If you want to start measuring performance in your app, pass a function

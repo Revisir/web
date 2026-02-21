@@ -1,3 +1,7 @@
 .layout {
   display: grid;
 }
+
+.text-decoration-underline-hover:hover {
+  text-decoration: underline !important;
+}

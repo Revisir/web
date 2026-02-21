@@ -1,8 +1,8 @@
-
 import axios from "axios";
-import { userName, userToken } from "../constants";
-import { signOut } from "aws-amplify/auth";
-const baseUrl = "http://localhost:5000";
+import { userName, userToken } from "../constants.mjs";
+import { DateTime } from "luxon";
+import { signOutRedirect } from "../utils.mjs";
+const baseUrl = "http://localhost:5000/api";
 
 export const AxiosInstancePrivate = () => {
   const axiosInstance = new axios.create({
@@ -16,21 +16,20 @@ export const AxiosInstancePrivate = () => {
       if (error.response && error.response.status === 401) {
         sessionStorage.removeItem(userToken);
         sessionStorage.removeItem(userName);
-        signOut().then(() => {
-          window.location.href = "/";
-        });
+        signOutRedirect();
       }
       return Promise.reject(error);
-    }
+    },
   );
   axiosInstance.interceptors.request.use((config) => {
+    const today = DateTime.now().zoneName;
     config.headers = {
       ...config.headers,
       Authorization: `Bearer ${sessionStorage.getItem(userToken)}`,
-      CurrentDate: new Date().toISOString().slice(0, 10),
+      "X-Local-DateTime": today,
     };
     return config;
   });
-  
+
   return axiosInstance;
 };

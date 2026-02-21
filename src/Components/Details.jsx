@@ -5,7 +5,7 @@ import deleteAnimation from "../lotties/trashV2.json";
 import resetAnimation from "../lotties/refresh.json";
 import LottieAnimation from "./LottiesAnimation";
 import { Button, Modal, ModalBody, ModalFooter, ModalHeader, ModalTitle, Spinner } from "react-bootstrap";
-import { reviseTopic } from "../service/topic_service";
+import { reviseTopic } from "../service/topic_service.mjs";
 function Details({ modelData, setShowModal }) {
   const [loading, setloading] = useState(true);
   const [editForm, setEditForm] = useState(false);
@@ -15,8 +15,7 @@ function Details({ modelData, setShowModal }) {
 
   useEffect(() => {
     setFormValue(modelData);
-  }, [modelData]);
-  useEffect(() => {
+    //TODO if no value was found
     if (!modelData) {
       setloading(true);
     } else {
@@ -27,7 +26,7 @@ function Details({ modelData, setShowModal }) {
   const handleClose = () => setShowModal(false);
   const handleRevised = () => {
     setRevisedButton(false);
-    reviseTopic(modelData.topic_id)
+    reviseTopic(modelData._id)
       .then((res) => {
         setRevisedButton(true);
       })
@@ -58,7 +57,7 @@ function Details({ modelData, setShowModal }) {
                   <label className="col-form-label">Name</label>
                 </div>
                 <div className="col-auto">
-                  <input type="text" className="form-control" value={formValue.topic} readOnly={!editForm} onChange={(e) => setFormValue({ ...formValue, topic: e.target.value })} />
+                  <input type="text" className="form-control" value={formValue.topicName} readOnly={!editForm} onChange={(e) => setFormValue({ ...formValue, topic: e.target.value })} />
                 </div>
               </div>
               <div className="row mb-3 align-items-center">
@@ -69,7 +68,7 @@ function Details({ modelData, setShowModal }) {
                   <input
                     type="text"
                     className="form-control"
-                    value={formValue.subject}
+                    value={formValue.subjectName}
                     readOnly={!editForm}
                     onChange={(e) => {
                       setFormValue({ ...formValue, subject: e.target.value });
@@ -82,7 +81,7 @@ function Details({ modelData, setShowModal }) {
                   <label className="col-form-label">Created On</label>
                 </div>
                 <div className="col-auto">
-                  <input type="text" className="form-control" value={DateTime.fromISO(modelData.date_created).toLocaleString(DateTime.DATE_HUGE)} readOnly disabled={editForm} />
+                  <input type="text" className="form-control" value={DateTime.fromISO(modelData.dateStudied).toLocaleString(DateTime.DATE_HUGE)} readOnly disabled={editForm} />
                 </div>
               </div>
               <div>
@@ -141,7 +140,7 @@ function Details({ modelData, setShowModal }) {
                 "Revise"
               ) : (
                 <>
-                  <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                  <span className="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
                   <span role="status">Revise</span>
                 </>
               )}

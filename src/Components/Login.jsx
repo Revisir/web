@@ -1,6 +1,7 @@
-import { signInWithRedirect } from "aws-amplify/auth";
+import { useAuth } from "react-oidc-context";
 
 function Login() {
+  const auth = useAuth();
   return (
     //TODO important responsivness
     <>
@@ -14,7 +15,7 @@ function Login() {
               onClick={() => {
                 document.getElementById("loadingButton").classList.remove("visually-hidden");
                 document.getElementById("loginButtonText").classList.add("visually-hidden");
-                signInWithRedirect();
+                auth.signinRedirect();
               }}
             >
               <span id="loadingButton" className="visually-hidden spinner-border spinner-border-sm" aria-hidden="true"></span>

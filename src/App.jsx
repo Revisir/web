@@ -5,6 +5,7 @@ import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import Callback from "./Components/Callback";
 import ListTabs from "./Components/ListTabs";
 import Login from "./Components/Login";
+import TopicDetails from "./Components/TopicDetails";
 import { AppContext, AppProvider } from "./store/AppProvider";
 // import { signInWithRedirect } from "aws-amplify/auth";
 
@@ -35,6 +36,7 @@ function PrimaryApp() {
       <Routes>
         <Route element={<AppLayout />}>
           <Route path="/" element={loggedIn ? <ListTabs /> : <Login />} />
+          <Route path="/topic/:id" element={loggedIn ? <TopicDetails /> : <Navigate to="/" />} />
         </Route>
         <Route path="/callback" element={loggedIn ? <Navigate to={"/"} /> : <Callback />} />
       </Routes>
