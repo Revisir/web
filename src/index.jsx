@@ -5,6 +5,7 @@ import App from "./App.jsx";
 import { BrowserRouter } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { AuthProvider } from "react-oidc-context";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const cognitoAuthConfig = {
   authority: "https://cognito-idp.ap-south-1.amazonaws.com/ap-south-1_kAEibA6fs",
@@ -13,14 +14,25 @@ const cognitoAuthConfig = {
   response_type: "code",
   scope: "email openid phone",
 };
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 3,
+      staleTime: Infinity,
+    },
+  },
+});
 
+window.__TANSTACK_QUERY_CLIENT__ = queryClient;
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   // <React.StrictMode>
   <AuthProvider {...cognitoAuthConfig}>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </QueryClientProvider>
   </AuthProvider>,
   // </React.StrictMode>
 );

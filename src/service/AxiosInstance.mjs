@@ -22,14 +22,13 @@ export const AxiosInstancePrivate = () => {
     },
   );
   axiosInstance.interceptors.request.use((config) => {
-    const today = DateTime.now().zoneName;
+    const zone = DateTime.now().zoneName;
     config.headers = {
       ...config.headers,
       Authorization: `Bearer ${sessionStorage.getItem(userToken)}`,
-      "X-Local-DateTime": today,
+      "X-Local-TimeZone": zone,
     };
     return config;
   });
-
   return axiosInstance;
 };

@@ -1,12 +1,9 @@
-import { useContext, useState } from "react";
 import { Modal, ModalBody, ModalFooter, ModalHeader, ModalTitle } from "react-bootstrap";
 import { useFieldArray, useForm } from "react-hook-form";
-import { addTopic } from "../../service/topic_service.mjs";
-import { AppContext } from "../../store/AppProvider";
-import { ADD_ITEM_IN_LIST } from "../../store/reducers/listReducer.mjs";
+import { useTopicCreate } from "../../hooks/useTopicQuery";
+import { DateTime } from "luxon";
 
 export default function TopicModal({ setShowModal }) {
-  const { setTodaysList } = useContext(AppContext);
   const {
     register,
     control,
@@ -18,20 +15,20 @@ export default function TopicModal({ setShowModal }) {
     },
   });
   const { fields, append, remove } = useFieldArray({ name: "linksList", control });
-  const [creatingTopic, setCreatingTopic] = useState(false);
-  const maxDate = new Date().toISOString().split("T")[0];
-  let minDate = new Date();
-  minDate.setDate(minDate.getDate() - 5);
-  minDate = minDate.toISOString().split("T")[0];
-  const onSubmit = async (data) => {
-    setCreatingTopic(true);
-    await addTopic(data)
-      .then((data) => {
-        setTodaysList({ payload: data, type: ADD_ITEM_IN_LIST });
-      })
-      .catch((err) => console.log(err));
-    setShowModal(false);
-    console.log(data);
+
+  const { isPending: isCreating, mutate: createTopic } = useTopicCreate();
+  const maxDate = DateTime.now().startOf("day").toJSDate();
+  const minDate = DateTime.now().minus({ days: 5 }).startOf("day").toJSDate();
+
+  const onSubmit = async (formData) => {
+    createTopic(
+      { formData },
+      {
+        onSettled: () => {
+          setShowModal(false);
+        },
+      },
+    );
   };
   const handleClose = () => {
     setShowModal(false);
@@ -50,7 +47,7 @@ export default function TopicModal({ setShowModal }) {
             <label htmlFor="topicName">Topic Name</label>
           </div>
           <div className="form-floating mb-3">
-            <input id="subjectName" type="text" className={`form-control ${errors.subject ? "is-invalid" : ""}`} placeholder="Which Subject?" {...register("subject", { required: true })} list="datalistOptions" />
+            <input id="subjectName" type="text" className={`form-control ${errors.subject ? "is-invalid" : ""}`} placeholder="Which Subject?" {...register("subjectName", { required: true })} list="datalistOptions" />
             <label htmlFor="subjectName">Subject</label>
             <datalist id="datalistOptions">
               <option value="San Francisco" />
@@ -61,8 +58,8 @@ export default function TopicModal({ setShowModal }) {
             </datalist>
           </div>
           <div className="form-floating mb-3">
-            <input className="form-control" type="date" max={maxDate} min={minDate} defaultValue={maxDate} id="dateLearnt" {...register("dateLearnt")} />
-            <label htmlFor="dateLearnt">Date Learnt</label>
+            <input className="form-control" type="date" max={maxDate} min={minDate} defaultValue={maxDate} id="dateStudied" {...register("dateStudied")} />
+            <label htmlFor="dateStudied">Date Learnt</label>
           </div>
           <div className="form-floating mb-3">
             <textarea className="form-control" maxLength={200} style={{ height: "100px", resize: "none" }} type="text" id="description" placeholder="Describe it more?" {...register("description")} />
@@ -100,8 +97,8 @@ export default function TopicModal({ setShowModal }) {
         <button className="btn btn-danger" onClick={handleClose}>
           Cancel
         </button>
-        <button className="btn btn-success" onClick={handleSubmit(onSubmit)} disabled={creatingTopic}>
-          {creatingTopic ? (
+        <button className="btn btn-success" onClick={handleSubmit(onSubmit)} disabled={isCreating}>
+          {isCreating ? (
             <>
               <span className="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
               <span role="status">Creating...</span>

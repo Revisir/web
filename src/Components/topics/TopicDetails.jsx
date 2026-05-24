@@ -1,72 +1,56 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getTopic, updateTopic, deleteTopic, getTopicHistory, reviseTopic } from "../service/topic_service.mjs";
 import { DateTime } from "luxon";
 import { Button, Form, Modal, ModalBody, ModalFooter, ModalHeader, ModalTitle } from "react-bootstrap";
-import editAnimation from "../lotties/edit.json";
-import deleteAnimation from "../lotties/trashV2.json";
-import resetAnimation from "../lotties/refresh.json";
-import LottieAnimation from "./LottiesAnimation";
+import editAnimation from "../../lotties/edit.json";
+import deleteAnimation from "../../lotties/trashV2.json";
+import resetAnimation from "../../lotties/refresh.json";
+import LottieAnimation from "../lotties/LottiesAnimation";
+import BsButtonWithLotties from "../lotties/BsButtonWithLotties";
+import { useTopicDetails, useTopicHistory, useTopicUpdate, useTopicRevise, useTopicDelete } from "../../hooks/useTopicQuery";
+import { extractRevisionBooleans, reviseBtnText } from "../../utils/topics.utils";
+import useHover from "../../hooks/useHover";
+import { useMemo } from "react";
+import { useRef } from "react";
 
 export default function TopicDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [topic, setTopic] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState(true);
+
   const [editing, setEditing] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [formData, setFormData] = useState({});
   const [playAnimation, setPlayAnimation] = useState({ edit: false, delete: false, reset: false });
-  const [revisedButton, setRevisedButton] = useState(true);
-  const [canReviseToday, setCanReviseToday] = useState(false);
+
   const [showQualityModal, setShowQualityModal] = useState(false);
-  const [isRevisedToday, setIsRevisedToday] = useState(false);
+
+  let revised = false,
+    today = false;
+  const { isFetched, data: topic } = useTopicDetails(id);
+  const { data: historyObj } = useTopicHistory(id);
+  const history = historyObj?.history;
+  const { isPending: isUpdating, mutate: updateTopic } = useTopicUpdate();
+  const { isPending: isRevising, mutate: reviseTopic } = useTopicRevise();
+  const { isPending: isDeleting, mutate: deleteTopic } = useTopicDelete();
+
+  const [reviseBtnRef, reviseBtnHovering] = useHover();
+  ({ revised, today } = useMemo(() => extractRevisionBooleans({ lastRevised: topic?.lastRevised, revisionDate: topic?.revisionDate }), [topic]));
+  const btnString = reviseBtnText(revised, reviseBtnHovering);
 
   useEffect(() => {
-    fetchTopic();
-    fetchHistory();
-  }, [id]);
-
-  const fetchTopic = async () => {
-    try {
-      const data = await getTopic(id);
-      setTopic(data);
+    if (topic)
       setFormData({
-        topicName: data.topicName,
-        subjectName: data.subjectName,
-        description: data.description,
-        dateStudied: data.dateStudied ? DateTime.fromISO(data.dateStudied).toISODate() : "",
+        topicName: topic.topicName,
+        subjectName: topic.subjectName,
+        description: topic.description,
+        dateStudied: topic.dateStudied ? DateTime.fromISO(topic.dateStudied).toISODate() : "",
       });
-
-      const lastRevised = DateTime.fromISO(data.lastRevised);
-      const nextRevision = DateTime.fromISO(data.revisionDate);
-      const revised = lastRevised.hasSame(DateTime.now(), "day");
-      const today = revised || nextRevision <= DateTime.now();
-      setCanReviseToday(today);
-      setIsRevisedToday(revised);
-
-      setLoading(false);
-    } catch (error) {
-      console.error("Failed to fetch topic");
-      setLoading(false);
-    }
-  };
-
-  const fetchHistory = async () => {
-    try {
-      const data = await getTopicHistory(id);
-      setHistory(data.history || []);
-    } catch (error) {
-      console.error("Failed to fetch history");
-    }
-  };
+  }, [isFetched]);
 
   const handleUpdate = async (e) => {
     e.preventDefault();
     try {
-      const result = await updateTopic(id, formData);
-      setTopic(result.topic);
+      updateTopic({ id, formData });
       setEditing(false);
     } catch (error) {
       console.error("Failed to update topic");
@@ -75,36 +59,27 @@ export default function TopicDetails() {
 
   const handleDelete = async () => {
     try {
-      await deleteTopic(id);
+      deleteTopic({ id });
       navigate("/");
     } catch (error) {
       console.error("Failed to delete topic");
     }
   };
 
-  const handleRevise = async (userQuality) => {
-    setRevisedButton(false);
+  const handleRevise = (userQuality) => {
     setShowQualityModal(false);
-    try {
-      await reviseTopic(id, { userQuality });
-      fetchTopic();
-      fetchHistory();
-      setRevisedButton(true);
-    } catch (error) {
-      console.error("Failed to mark as revised");
-      setRevisedButton(true);
-    }
+    reviseTopic({ id, quality: { userQuality } });
   };
 
   const handleReviseClick = () => {
-    if (isRevisedToday) {
-      handleRevise(0);
+    if (revised) {
+      handleRevise(1);
     } else {
       setShowQualityModal(true);
     }
   };
 
-  if (loading) {
+  if (!isFetched) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "400px" }}>
         <div className="spinner-border" role="status">
@@ -133,22 +108,9 @@ export default function TopicDetails() {
                 {topic.subjectName && <span className="badge bg-secondary">{topic.subjectName}</span>}
               </div>
               <div className="d-flex gap-2">
-                <Button title="Reset Progress" variant="warning" className="p-1" onMouseEnter={() => setPlayAnimation({ ...playAnimation, reset: true })} onMouseLeave={() => setPlayAnimation({ ...playAnimation, reset: false })}>
-                  <LottieAnimation id="resetButtonIcon" icon={resetAnimation} play={playAnimation.reset} />
-                </Button>
-                <Button
-                  title="Delete"
-                  style={{ padding: "4px", paddingBottom: "5px" }}
-                  variant="danger"
-                  onClick={() => setShowDeleteModal(true)}
-                  onMouseEnter={() => setPlayAnimation({ ...playAnimation, delete: true })}
-                  onMouseLeave={() => setPlayAnimation({ ...playAnimation, delete: false })}
-                >
-                  <LottieAnimation id="deleteButtonIcon" icon={deleteAnimation} play={playAnimation.delete} />
-                </Button>
-                <Button title="Edit" className="p-1" variant="info" onClick={() => setEditing(true)} onMouseEnter={() => setPlayAnimation({ ...playAnimation, edit: true })} onMouseLeave={() => setPlayAnimation({ ...playAnimation, edit: false })}>
-                  <LottieAnimation id="editButtonIcon" icon={editAnimation} play={playAnimation.edit} />
-                </Button>
+                <BsButtonWithLotties id="resetButtonIcon" icon={resetAnimation} title="Reset Progress" variant="warning" className="p-1" />
+                <BsButtonWithLotties id="deleteButtonIcon" icon={deleteAnimation} title="Delete" style={{ padding: "4px", paddingBottom: "5px" }} variant="danger" onClick={() => setShowDeleteModal(true)} />
+                <BsButtonWithLotties id="editButtonIcon" icon={editAnimation} title="Edit" className="p-1" variant="info" onClick={() => setEditing(true)} />
               </div>
             </div>
 
@@ -166,25 +128,14 @@ export default function TopicDetails() {
             </div>
 
             <div className="mt-4 text-end">
-              <Button title={isRevisedToday ? "Mark as Not Revised" : "Revised Topic Today"} variant={!canReviseToday ? "secondary" : "success"} onClick={handleReviseClick} disabled={!revisedButton || !canReviseToday}>
-                {!revisedButton ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
-                    <span role="status">Revise</span>
-                  </>
-                ) : !canReviseToday ? (
-                  "Can't Revise"
-                ) : isRevisedToday ? (
-                  "Revised"
-                ) : (
-                  "Revise"
-                )}
+              <Button ref={reviseBtnRef} title={revised ? "Mark as Not Revised" : "Revised Topic Today"} variant={!today ? "secondary" : "success"} onClick={handleReviseClick} disabled={isRevising || !today}>
+                {!today ? "Can't Revise Today" : btnString}
               </Button>
             </div>
 
             <div className="mt-4">
               <h5>Revision History</h5>
-              {history.length > 0 ? (
+              {history?.length > 0 ? (
                 <div className="table-responsive">
                   <table className="table table-sm">
                     <thead>
@@ -313,7 +264,6 @@ export default function TopicDetails() {
   );
 }
 
-
 function FileCard({ file }) {
   const [showActions, setShowActions] = useState(false);
 
@@ -377,25 +327,23 @@ function FileCard({ file }) {
       onMouseLeave={() => setShowActions(false)}
     >
       {showActions && (
-        <div
-          className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center gap-2"
-          style={{ backgroundColor: "rgba(0,0,0,0.7)", borderRadius: "8px" }}
-        >
-          <Button
-            variant="light"
-            size="sm"
-            onClick={() => window.open(file.url, "_blank")}
-            title="Open in new tab"
-          >
+        <div className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center gap-2" style={{ backgroundColor: "rgba(0,0,0,0.7)", borderRadius: "8px" }}>
+          <Button variant="light" size="sm" onClick={() => window.open(file.url, "_blank")} title="Open in new tab">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-              <path fillRule="evenodd" d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z" />
+              <path
+                fillRule="evenodd"
+                d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z"
+              />
               <path fillRule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z" />
             </svg>
           </Button>
           <Button variant="danger" size="sm" title="Delete">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
               <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" />
-              <path fillRule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z" />
+              <path
+                fillRule="evenodd"
+                d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
+              />
             </svg>
           </Button>
         </div>
