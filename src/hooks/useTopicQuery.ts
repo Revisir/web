@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useEffect } from "react";
-import { getTopic, getTopicHistory, updateTopic, reviseTopic, deleteTopic, addTopic } from "../service/topic_service.mjs";
+import { getTopic, getTopicHistory, updateTopic, reviseTopic, deleteTopic, addTopic, getFileUploadUrls, deleteTopicFile, resetTopic } from "../service/topic_service.mjs";
 import { extractRevisionBooleans } from "../utils/topics.utils";
 export const DUE_TOPIC_KEY = "dueTopics";
 export const ALL_TOPIC_KEY = "allTopics";
@@ -11,6 +11,7 @@ export const TOPIC_HISTORY_KEY = "history_Topic";
 
 interface TopicListLoader {
   data: Record<string, any>;
+  totalPages: number;
   isFetched: boolean;
 }
 
@@ -22,10 +23,10 @@ type ListData = {
 
 type RevisionResponse = { lastRevised: string; nextRevisionDate: string };
 
-export function useTopicsList(listKey: string, loader: () => Promise<any>): TopicListLoader {
+export function useTopicsList(listKey: string, loader: (page?: number) => Promise<any>, page: number = 1): TopicListLoader {
   const { data, isFetched } = useQuery({
-    queryKey: [listKey],
-    queryFn: loader,
+    queryKey: [listKey, page],
+    queryFn: () => loader(page),
     staleTime: Infinity,
   });
   const qClient = useQueryClient();
@@ -39,7 +40,7 @@ export function useTopicsList(listKey: string, loader: () => Promise<any>): Topi
     }
   }, [data]);
 
-  return { data: data?.topics, isFetched };
+  return { data: data?.topics, totalPages: data?.total ?? 1, isFetched };
 }
 
 export function useMinTopicDetails(id: string) {
@@ -181,6 +182,54 @@ export function useTopicCreate() {
       qClient.setQueryData([ALL_TOPIC_KEY], (oldDetail: ListData) => {
         return { ...oldDetail, topics: [...oldDetail.topics, { ...res, _id: res.topicId }] };
       });
+    },
+  });
+}
+
+export function useTopicFileUpload() {
+  const qClient = useQueryClient();
+  return useMutation({
+    mutationKey: ["upload-topic-files"],
+    mutationFn: async ({ id, files }: { id: string; files: File[] }) => {
+      const fileMeta = files.map((f) => ({
+        fileName: f.name,
+        size: f.size,
+        contentType: f.type,
+      }));
+      const { uploadUrls } = await getFileUploadUrls(id, fileMeta);
+      await Promise.all(
+        uploadUrls.map(({ uploadUrl }, idx) =>
+          fetch(uploadUrl, {
+            method: "PUT",
+            headers: { "Content-Type": files[idx].type },
+            body: files[idx],
+          })
+        )
+      );
+    },
+    onSuccess: (_, { id }) => {
+      qClient.invalidateQueries({ queryKey: [TOPIC_DETAILS_KEY, String(id)] });
+    },
+  });
+}
+
+export function useTopicFileDelete() {
+  const qClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ topicId, fileId }: { topicId: string; fileId: string }) => deleteTopicFile(topicId, fileId),
+    onSuccess: (_, { topicId }) => {
+      qClient.invalidateQueries({ queryKey: [TOPIC_DETAILS_KEY, String(topicId)] });
+    },
+  });
+}
+
+export function useTopicReset() {
+  const qClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id }: { id: string }) => resetTopic(id),
+    onSuccess: (_, { id }) => {
+      qClient.invalidateQueries({ queryKey: [TOPIC_DETAILS_KEY, String(id)] });
+      qClient.invalidateQueries({ queryKey: [TOPIC_HISTORY_KEY, String(id)] });
     },
   });
 }

@@ -1,27 +1,27 @@
-import { useEffect, useState } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { DateTime } from "luxon";
-import { Button, Form, Modal, ModalBody, ModalFooter, ModalHeader, ModalTitle } from "react-bootstrap";
+import { Button, Modal, ModalBody, ModalFooter, ModalHeader, ModalTitle } from "react-bootstrap";
+import TopicModal from "./TopicModal";
+import RevisionChat from "./RevisionChat";
 import editAnimation from "../../lotties/edit.json";
 import deleteAnimation from "../../lotties/trashV2.json";
 import resetAnimation from "../../lotties/refresh.json";
 import LottieAnimation from "../lotties/LottiesAnimation";
 import BsButtonWithLotties from "../lotties/BsButtonWithLotties";
-import { useTopicDetails, useTopicHistory, useTopicUpdate, useTopicRevise, useTopicDelete } from "../../hooks/useTopicQuery";
+import { useTopicDetails, useTopicHistory, useTopicRevise, useTopicDelete, useTopicFileUpload, useTopicFileDelete, useTopicReset, useTopicUpdate } from "../../hooks/useTopicQuery";
 import { extractRevisionBooleans, reviseBtnText } from "../../utils/topics.utils";
 import useHover from "../../hooks/useHover";
-import { useMemo } from "react";
-import { useRef } from "react";
 
 export default function TopicDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [editing, setEditing] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [formData, setFormData] = useState({});
   const [playAnimation, setPlayAnimation] = useState({ edit: false, delete: false, reset: false });
 
+  const [showChat, setShowChat] = useState(false);
   const [showQualityModal, setShowQualityModal] = useState(false);
 
   let revised = false,
@@ -29,32 +29,59 @@ export default function TopicDetails() {
   const { isFetched, data: topic } = useTopicDetails(id);
   const { data: historyObj } = useTopicHistory(id);
   const history = historyObj?.history;
-  const { isPending: isUpdating, mutate: updateTopic } = useTopicUpdate();
+
   const { isPending: isRevising, mutate: reviseTopic } = useTopicRevise();
   const { isPending: isDeleting, mutate: deleteTopic } = useTopicDelete();
+  const { isPending: isUploading, mutate: uploadFiles, error: uploadError, reset: resetUpload } = useTopicFileUpload();
+  const { isPending: isUpdating, mutate: updateTopic } = useTopicUpdate();
+  const { mutate: resetTopicProgress } = useTopicReset();
+  const fileInputRef = useRef(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
 
   const [reviseBtnRef, reviseBtnHovering] = useHover();
   ({ revised, today } = useMemo(() => extractRevisionBooleans({ lastRevised: topic?.lastRevised, revisionDate: topic?.revisionDate }), [topic]));
   const btnString = reviseBtnText(revised, reviseBtnHovering);
 
-  useEffect(() => {
-    if (topic)
-      setFormData({
-        topicName: topic.topicName,
-        subjectName: topic.subjectName,
-        description: topic.description,
-        dateStudied: topic.dateStudied ? DateTime.fromISO(topic.dateStudied).toISODate() : "",
-      });
-  }, [isFetched]);
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    setSelectedFiles((prev) => [...prev, ...files].slice(0, 5));
+    e.target.value = "";
+  };
 
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    try {
-      updateTopic({ id, formData });
-      setEditing(false);
-    } catch (error) {
-      console.error("Failed to update topic");
-    }
+  const handleUpload = () => {
+    if (selectedFiles.length === 0) return;
+    resetUpload();
+    uploadFiles({ id, files: selectedFiles }, { onSuccess: () => setSelectedFiles([]) });
+  };
+
+  const removeSelectedFile = (idx) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+
+
+  const [urls, setUrls] = useState([]);
+  const urlsInitialized = useRef(false);
+  if (topic && !urlsInitialized.current) {
+    urlsInitialized.current = true;
+    setUrls(topic.urls?.length ? [...topic.urls, ""] : [""]);
+  }
+
+  const handleUrlChange = (idx, value) => {
+    setUrls((prev) => prev.map((u, i) => (i === idx ? value : u)));
+  };
+
+  const addUrl = () => {
+    if (urls[urls.length - 1]?.trim()) setUrls((prev) => [...prev, ""]);
+  };
+
+  const removeUrl = (idx) => setUrls((prev) => prev.filter((_, i) => i !== idx));
+
+  const saveUrls = () => {
+    const filtered = urls.filter((u) => u.trim());
+    if (filtered.length === 0) return;
+    updateTopic({ id, formData: { urls: filtered } });
   };
 
   const handleDelete = async () => {
@@ -66,17 +93,21 @@ export default function TopicDetails() {
     }
   };
 
-  const handleRevise = (userQuality) => {
-    setShowQualityModal(false);
-    reviseTopic({ id, quality: { userQuality } });
-  };
+  const hasContent = topic?.files?.length > 0 || topic?.url;
 
   const handleReviseClick = () => {
     if (revised) {
-      handleRevise(1);
+      reviseTopic({ id, quality: { userQuality: 1 } });
+    } else if (hasContent) {
+      setShowChat(true);
     } else {
       setShowQualityModal(true);
     }
+  };
+
+  const handleChatClose = (quality) => {
+    setShowChat(false);
+    if (quality) reviseTopic({ id, quality: { userQuality: quality } });
   };
 
   if (!isFetched) {
@@ -99,8 +130,8 @@ export default function TopicDetails() {
         ← Back to List
       </Button>
 
-      {!editing ? (
-        <div className="card">
+      {showEditModal && <TopicModal setShowModal={setShowEditModal} topic={topic} />}
+      <div className="card">
           <div className="card-body">
             <div className="d-flex justify-content-between align-items-start mb-3">
               <div>
@@ -108,9 +139,9 @@ export default function TopicDetails() {
                 {topic.subjectName && <span className="badge bg-secondary">{topic.subjectName}</span>}
               </div>
               <div className="d-flex gap-2">
-                <BsButtonWithLotties id="resetButtonIcon" icon={resetAnimation} title="Reset Progress" variant="warning" className="p-1" />
+                <BsButtonWithLotties id="resetButtonIcon" icon={resetAnimation} title="Reset Progress" variant="warning" className="p-1" onClick={() => resetTopicProgress({ id })} />
                 <BsButtonWithLotties id="deleteButtonIcon" icon={deleteAnimation} title="Delete" style={{ padding: "4px", paddingBottom: "5px" }} variant="danger" onClick={() => setShowDeleteModal(true)} />
-                <BsButtonWithLotties id="editButtonIcon" icon={editAnimation} title="Edit" className="p-1" variant="info" onClick={() => setEditing(true)} />
+                <BsButtonWithLotties id="editButtonIcon" icon={editAnimation} title="Edit" className="p-1" variant="info" onClick={() => setShowEditModal(true)} />
               </div>
             </div>
 
@@ -169,7 +200,7 @@ export default function TopicDetails() {
               <h5>Files</h5>
               <div className="d-flex flex-wrap gap-3">
                 {topic.files?.map((file, idx) => (
-                  <FileCard key={idx} file={file} />
+                  <FileCard key={file._id || idx} file={file} topicId={id} />
                 ))}
                 <div
                   className="file-card file-card-add"
@@ -183,52 +214,70 @@ export default function TopicDetails() {
                     justifyContent: "center",
                     cursor: "pointer",
                   }}
-                  onClick={() => document.getElementById("fileInput").click()}
+                  onClick={() => fileInputRef.current?.click()}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#6c757d" viewBox="0 0 16 16">
                     <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
                   </svg>
                 </div>
-                <input id="fileInput" type="file" style={{ display: "none" }} />
+                <input ref={fileInputRef} type="file" multiple accept="application/pdf,image/png,image/jpeg,image/jpg,image/gif,image/webp,text/plain" style={{ display: "none" }} onChange={handleFileSelect} />
               </div>
+              {selectedFiles.length > 0 && (
+                <div className="mt-3">
+                  <ul className="list-group list-group-flush mb-2">
+                    {selectedFiles.map((file, idx) => (
+                      <li key={idx} className="list-group-item d-flex justify-content-between align-items-center py-1 px-2">
+                        <small>
+                          {file.name} ({(file.size / 1024).toFixed(1)} KB)
+                        </small>
+                        <button type="button" className="btn-close btn-close-sm" onClick={() => removeSelectedFile(idx)} disabled={isUploading}></button>
+                      </li>
+                    ))}
+                  </ul>
+                  <Button size="sm" variant="primary" onClick={handleUpload} disabled={isUploading}>
+                    {isUploading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Uploading...
+                      </>
+                    ) : (
+                      `Upload ${selectedFiles.length} file(s)`
+                    )}
+                  </Button>
+                  {uploadError && <div className="alert alert-danger py-1 px-2 mt-2 mb-0 small">{uploadError.response?.data?.error?.message || uploadError.message}</div>}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-4">
+              <h5>URLs</h5>
+              {urls.map((url, idx) => {
+                const isLast = idx === urls.length - 1;
+                return (
+                  <div className="input-group mb-2" key={idx}>
+                    <input type="text" className="form-control" placeholder="https://..." value={url} onChange={(e) => handleUrlChange(idx, e.target.value)} />
+                    {!isLast ? (
+                      <button className="btn btn-outline-secondary d-flex align-items-center justify-content-center" type="button" onClick={() => removeUrl(idx)}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                          <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708" />
+                        </svg>
+                      </button>
+                    ) : (
+                      <button className="btn btn-outline-secondary d-flex align-items-center justify-content-center" type="button" onClick={addUrl}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                          <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+              <Button size="sm" variant="primary" onClick={saveUrls} disabled={isUpdating || !urls.some((u) => u.trim())}>
+                {isUpdating ? "Saving..." : "Save URLs"}
+              </Button>
             </div>
           </div>
         </div>
-      ) : (
-        <div className="card">
-          <div className="card-body">
-            <h3>Edit Topic</h3>
-            <Form onSubmit={handleUpdate}>
-              <Form.Group className="mb-3">
-                <Form.Label>Topic Name</Form.Label>
-                <Form.Control type="text" value={formData.topicName} onChange={(e) => setFormData({ ...formData, topicName: e.target.value })} maxLength={200} required />
-              </Form.Group>
 
-              <Form.Group className="mb-3">
-                <Form.Label>Subject Name</Form.Label>
-                <Form.Control type="text" value={formData.subjectName} onChange={(e) => setFormData({ ...formData, subjectName: e.target.value })} maxLength={100} />
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>Description</Form.Label>
-                <Form.Control as="textarea" rows={4} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>Date Studied</Form.Label>
-                <Form.Control type="date" value={formData.dateStudied} onChange={(e) => setFormData({ ...formData, dateStudied: e.target.value })} />
-              </Form.Group>
-
-              <Button variant="primary" type="submit" className="me-2">
-                Save
-              </Button>
-              <Button variant="secondary" onClick={() => setEditing(false)}>
-                Cancel
-              </Button>
-            </Form>
-          </div>
-        </div>
-      )}
 
       <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
         <ModalHeader closeButton>
@@ -245,6 +294,8 @@ export default function TopicDetails() {
         </ModalFooter>
       </Modal>
 
+      {showChat && <RevisionChat topicId={id} onClose={handleChatClose} />}
+
       <Modal show={showQualityModal} onHide={() => setShowQualityModal(false)} centered>
         <ModalHeader closeButton>
           <ModalTitle>Select Quality</ModalTitle>
@@ -252,11 +303,17 @@ export default function TopicDetails() {
         <ModalBody>
           <p>How well did you recall this topic?</p>
           <div className="d-grid gap-2">
-            {[5, 4, 3, 2, 1].map((quality) => (
-              <Button key={quality} variant="outline-success" onClick={() => handleRevise(quality)}>
-                {quality} - {quality === 5 ? "Perfect" : quality === 4 ? "Good" : quality === 3 ? "Fair" : quality === 2 ? "Poor" : "Very Poor"}
+            {[5, 4, 3, 2, 1].map((q) => (
+              <Button key={q} variant="outline-success" onClick={() => { setShowQualityModal(false); reviseTopic({ id, quality: { userQuality: q } }); }}>
+                {q} - {q === 5 ? "Perfect" : q === 4 ? "Good" : q === 3 ? "Fair" : q === 2 ? "Poor" : "Very Poor"}
               </Button>
             ))}
+          </div>
+          <div className="alert alert-info d-flex align-items-center mt-3 mb-0 py-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="me-2 flex-shrink-0" viewBox="0 0 16 16">
+              <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+            </svg>
+            <span>Upload a file or add a URL to revise with <strong>Reviser</strong> tutor!</span>
           </div>
         </ModalBody>
       </Modal>
@@ -264,11 +321,18 @@ export default function TopicDetails() {
   );
 }
 
-function FileCard({ file }) {
+function FileCard({ file, topicId }) {
+  const { fileName, fileType, fileUrl } = file;
   const [showActions, setShowActions] = useState(false);
+  const { isPending: isFileDeleting, mutate: deleteFile } = useTopicFileDelete();
 
-  const getFileIcon = (fileName) => {
-    const ext = fileName.split(".").pop().toLowerCase();
+  const handleDeleteFile = (e) => {
+    e.stopPropagation();
+    deleteFile({ topicId, fileId: file._id });
+  };
+
+  const getFileIcon = () => {
+    const ext = fileType.toLowerCase();
     const iconProps = { width: "48", height: "48", fill: "currentColor", viewBox: "0 0 16 16" };
 
     if (["jpg", "jpeg", "png", "gif", "svg", "webp"].includes(ext)) {
@@ -328,7 +392,7 @@ function FileCard({ file }) {
     >
       {showActions && (
         <div className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center gap-2" style={{ backgroundColor: "rgba(0,0,0,0.7)", borderRadius: "8px" }}>
-          <Button variant="light" size="sm" onClick={() => window.open(file.url, "_blank")} title="Open in new tab">
+          <Button variant="light" size="sm" onClick={() => window.open(fileUrl, "_blank")} title="Open in new tab">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
               <path
                 fillRule="evenodd"
@@ -337,21 +401,22 @@ function FileCard({ file }) {
               <path fillRule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z" />
             </svg>
           </Button>
-          <Button variant="danger" size="sm" title="Delete">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" />
-              <path
-                fillRule="evenodd"
-                d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
-              />
-            </svg>
-          </Button>
+          <BsButtonWithLotties
+            id={`deleteFileBtn-${file._id}`}
+            icon={deleteAnimation}
+            title="Delete"
+            variant="danger"
+            size="sm"
+            onClick={handleDeleteFile}
+            disabled={isFileDeleting}
+            style={{ padding: "4px", paddingBottom: "5px" }}
+          />
         </div>
       )}
       <div className="text-center">
-        {getFileIcon(file.name)}
+        {getFileIcon(fileName)}
         <small className="d-block mt-2 text-truncate" style={{ maxWidth: "100px" }}>
-          {file.name}
+          {fileName}
         </small>
       </div>
     </div>

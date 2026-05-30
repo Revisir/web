@@ -20,9 +20,11 @@ function App() {
 
 function AppLayout() {
   return (
-    <div className="container">
+    <div className="container d-flex flex-column" style={{ minHeight: "100vh" }}>
       <Header />
-      <Outlet />
+      <div className="flex-grow-1">
+        <Outlet />
+      </div>
       <Footer />
     </div>
   );

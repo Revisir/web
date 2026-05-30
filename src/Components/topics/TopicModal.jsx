@@ -1,44 +1,61 @@
 import { Modal, ModalBody, ModalFooter, ModalHeader, ModalTitle } from "react-bootstrap";
 import { useFieldArray, useForm } from "react-hook-form";
-import { useTopicCreate } from "../../hooks/useTopicQuery";
+import { useTopicCreate, useTopicUpdate } from "../../hooks/useTopicQuery";
 import { DateTime } from "luxon";
 
-export default function TopicModal({ setShowModal }) {
+export default function TopicModal({ setShowModal, topic }) {
+  const isEdit = !!topic;
+
   const {
     register,
     control,
     handleSubmit,
     formState: { errors },
   } = useForm({
-    defaultValues: {
-      linksList: [{ link: "" }],
-    },
+    defaultValues: isEdit
+      ? {
+          topicName: topic.topicName,
+          subjectName: topic.subjectName,
+          description: topic.description || "",
+          dateStudied: topic.dateStudied ? DateTime.fromISO(topic.dateStudied).toISODate() : "",
+          urls: topic.urls?.length ? topic.urls.map((u) => ({ value: u })) : [{ value: "" }],
+        }
+      : {
+          urls: [{ value: "" }],
+        },
   });
-  const { fields, append, remove } = useFieldArray({ name: "linksList", control });
+  const { fields, append, remove } = useFieldArray({ name: "urls", control });
 
   const { isPending: isCreating, mutate: createTopic } = useTopicCreate();
+  const { isPending: isUpdating, mutate: updateTopic } = useTopicUpdate();
+  const isPending = isEdit ? isUpdating : isCreating;
+
   const maxDate = DateTime.now().startOf("day").toJSDate();
   const minDate = DateTime.now().minus({ days: 5 }).startOf("day").toJSDate();
 
   const onSubmit = async (formData) => {
-    createTopic(
-      { formData },
-      {
-        onSettled: () => {
-          setShowModal(false);
-        },
-      },
-    );
+    formData.urls = formData.urls.map((u) => u.value);
+    if (isEdit) {
+      updateTopic(
+        { id: topic._id, formData },
+        { onSettled: () => setShowModal(false) },
+      );
+    } else {
+      createTopic(
+        { formData },
+        { onSettled: () => setShowModal(false) },
+      );
+    }
   };
+
   const handleClose = () => {
     setShowModal(false);
   };
-  console.count("topic modal render");
-  // TODO ADD validattion on max number of char in name , subject
+
   return (
     <Modal show onHide={handleClose} centered>
       <ModalHeader closeButton>
-        <ModalTitle>Topic</ModalTitle>
+        <ModalTitle>{isEdit ? "Edit Topic" : "Topic"}</ModalTitle>
       </ModalHeader>
       <ModalBody>
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -73,7 +90,7 @@ export default function TopicModal({ setShowModal }) {
               const isLast = index === fields.length - 1;
               return (
                 <div className="input-group mb-3" key={field.id}>
-                  <input type="text" className={`form-control ${errors.linksList?.[index]?.link ? "is-invalid" : ""}`} placeholder="Link" aria-label="Link" {...register(`linksList.${index}.link`, { required: !isLast })} />
+                  <input type="text" className={`form-control ${errors.urls?.[index]?.value ? "is-invalid" : ""}`} placeholder="Link" aria-label="Link" {...register(`urls.${index}.value`, { required: !isLast, pattern: !isLast ? /^https?:\/\/.+/ : undefined })} />
                   {!isLast ? (
                     <button className="btn btn-outline-secondary d-flex align-items-center justify-content-center" type="button" id="add more" style={{ padding: "2px 5px", verticalAlign: "center" }} onClick={() => remove(index)}>
                       <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" className="bi bi-x" viewBox="0 0 16 16">
@@ -97,14 +114,14 @@ export default function TopicModal({ setShowModal }) {
         <button className="btn btn-danger" onClick={handleClose}>
           Cancel
         </button>
-        <button className="btn btn-success" onClick={handleSubmit(onSubmit)} disabled={isCreating}>
-          {isCreating ? (
+        <button className="btn btn-success" onClick={handleSubmit(onSubmit)} disabled={isPending}>
+          {isPending ? (
             <>
               <span className="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
-              <span role="status">Creating...</span>
+              <span role="status">{isEdit ? "Saving..." : "Creating..."}</span>
             </>
           ) : (
-            "Create"
+            isEdit ? "Save" : "Create"
           )}
         </button>
       </ModalFooter>
