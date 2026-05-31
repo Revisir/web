@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useEffect } from "react";
-import { getTopic, getTopicHistory, updateTopic, reviseTopic, deleteTopic, addTopic, getFileUploadUrls, deleteTopicFile, resetTopic } from "../service/topic_service.mjs";
+import { getTopic, getTopicHistory, updateTopic, reviseTopic, deleteTopic, addTopic, getFileUploadUrls, deleteTopicFile, resetTopic, generateMindMap } from "../service/topic_service.mjs";
 import { extractRevisionBooleans } from "../utils/topics.utils";
 export const DUE_TOPIC_KEY = "dueTopics";
 export const ALL_TOPIC_KEY = "allTopics";
@@ -76,7 +76,7 @@ export function useTopicUpdate() {
         lastRevised: res.lastRevised,
         revisionDate: res.nextRevisionDate,
       }));
-      qClient.setQueryData([TOPIC_DETAILS_KEY, String(id)], res);
+      qClient.setQueryData([TOPIC_DETAILS_KEY, String(id)], res?.topic);
       qClient.invalidateQueries({ queryKey: [TOPIC_HISTORY_KEY, String(id)] });
     },
   });
@@ -203,8 +203,8 @@ export function useTopicFileUpload() {
             method: "PUT",
             headers: { "Content-Type": files[idx].type },
             body: files[idx],
-          })
-        )
+          }),
+        ),
       );
     },
     onSuccess: (_, { id }) => {
@@ -230,6 +230,20 @@ export function useTopicReset() {
     onSuccess: (_, { id }) => {
       qClient.invalidateQueries({ queryKey: [TOPIC_DETAILS_KEY, String(id)] });
       qClient.invalidateQueries({ queryKey: [TOPIC_HISTORY_KEY, String(id)] });
+    },
+  });
+}
+
+export function useTopicMindMapGenerate() {
+  const qClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id }: { id: string }) => generateMindMap(id),
+    onSuccess: (res, { id }) => {
+      qClient.setQueryData([TOPIC_DETAILS_KEY, String(id)], (old: any) => {
+        if (!old) return old;
+        console.log({ ...old, mindMap: res.mindmap });
+        return { ...old, mindMap: res.mindmap };
+      });
     },
   });
 }

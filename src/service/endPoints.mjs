@@ -5,4 +5,5 @@ export const api = {
     return id ? `/topics/${id}` : `/topics`;
   },
   statistics: "/statistics",
+  subjects: "/subjects",
 };

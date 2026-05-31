@@ -62,3 +62,13 @@ export async function resetTopic(id) {
   const response = await axios.post(`${api.topic(id)}/reset`);
   return response?.data;
 }
+
+export async function generateMindMap(id) {
+  const response = await axios.post(`${api.topic(id)}/mindmap`);
+  return response?.data;
+}
+
+export async function getSubjects(q) {
+  const response = await axios.get(api.subjects, { params: { q } });
+  return response?.data?.subjects;
+}

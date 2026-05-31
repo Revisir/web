@@ -10,7 +10,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const cognitoAuthConfig = {
   authority: "https://cognito-idp.ap-south-1.amazonaws.com/ap-south-1_kAEibA6fs",
   client_id: "6chhv3rf7dik3j5gbjic2f9g82",
-  redirect_uri: "http://localhost:5173/callback",
+  redirect_uri: `${window.location.origin}/callback`,
   response_type: "code",
   scope: "email openid phone",
 };

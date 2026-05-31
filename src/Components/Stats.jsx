@@ -22,27 +22,27 @@ function Stats() {
   }
   console.log(data);
   return (
-    <div className="d-flex flex-column align-center justify-content-center align-items-center">
-      <div className="d-flex flex-lg-row flex-column  align-center justify-content-center align-items-center">
-        <div className="d-flex flex-sm-row flex-column align-center justify-content-center align-items-center">
-          <div className="my-3">
-            <Card>
-              <CardBody>
-                <h3>Total Topics : {data?.totalTopics}</h3>
-              </CardBody>
-            </Card>
-            <Card>
-              <CardBody>
-                <h3>Due Today : {data?.dueToday}</h3>
-              </CardBody>
-            </Card>
-          </div>
-          <CalendarCount data={data.upcomingRevisions} />
-        </div>
-        <SunBurstBook data={data.perSubject} />
+    <>
+      <div className="my-3 d-flex flex-sm-row flex-column  justify-content-sm-evenly  justify-content-center align-items-sm-center gap-2 ">
+        <Card className="text-center ">
+          <CardBody>
+            <h3>Total Topics : {data?.totalTopics}</h3>
+          </CardBody>
+        </Card>
+        <Card className="text-center">
+          <CardBody>
+            <h3>Due Today : {data?.dueToday}</h3>
+          </CardBody>
+        </Card>
       </div>
-      <CalendarHeatMap data={data.revisionPerDay} />
-    </div>
+      <div className="d-flex  w-100  flex-column justify-content-center align-items-center">
+        <div className="d-flex  w-100  flex-lg-row flex-column justify-content-lg-evenly justify-content-center align-items-center gap-2 mb-2">
+          <CalendarCount data={data.upcomingRevisions} />
+          <SunBurstBook data={data.perSubject} />
+        </div>
+        <CalendarHeatMap data={data.revisionPerDay} />
+      </div>
+    </>
   );
 }
 

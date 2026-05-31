@@ -1,7 +1,10 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { DateTime } from "luxon";
 import { Button, Modal, ModalBody, ModalFooter, ModalHeader, ModalTitle } from "react-bootstrap";
+import Accordion from "react-bootstrap/Accordion";
+import MindElixir from "mind-elixir";
+import "mind-elixir/style.css";
 import TopicModal from "./TopicModal";
 import RevisionChat from "./RevisionChat";
 import editAnimation from "../../lotties/edit.json";
@@ -9,7 +12,7 @@ import deleteAnimation from "../../lotties/trashV2.json";
 import resetAnimation from "../../lotties/refresh.json";
 import LottieAnimation from "../lotties/LottiesAnimation";
 import BsButtonWithLotties from "../lotties/BsButtonWithLotties";
-import { useTopicDetails, useTopicHistory, useTopicRevise, useTopicDelete, useTopicFileUpload, useTopicFileDelete, useTopicReset, useTopicUpdate } from "../../hooks/useTopicQuery";
+import { useTopicDetails, useTopicHistory, useTopicRevise, useTopicDelete, useTopicFileUpload, useTopicFileDelete, useTopicReset, useTopicUpdate, useTopicMindMapGenerate } from "../../hooks/useTopicQuery";
 import { extractRevisionBooleans, reviseBtnText } from "../../utils/topics.utils";
 import useHover from "../../hooks/useHover";
 
@@ -19,6 +22,7 @@ export default function TopicDetails() {
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
   const [playAnimation, setPlayAnimation] = useState({ edit: false, delete: false, reset: false });
 
   const [showChat, setShowChat] = useState(false);
@@ -59,13 +63,11 @@ export default function TopicDetails() {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== idx));
   };
 
-
-
   const [urls, setUrls] = useState([]);
   const urlsInitialized = useRef(false);
   if (topic && !urlsInitialized.current) {
     urlsInitialized.current = true;
-    setUrls(topic.urls?.length ? [...topic.urls, ""] : [""]);
+    setUrls(topic.urls?.length ? [...topic.urls.map((u) => u.url || u), ""] : [""]);
   }
 
   const handleUrlChange = (idx, value) => {
@@ -80,7 +82,6 @@ export default function TopicDetails() {
 
   const saveUrls = () => {
     const filtered = urls.filter((u) => u.trim());
-    if (filtered.length === 0) return;
     updateTopic({ id, formData: { urls: filtered } });
   };
 
@@ -93,7 +94,7 @@ export default function TopicDetails() {
     }
   };
 
-  const hasContent = topic?.files?.length > 0 || topic?.url;
+  const hasContent = topic?.files?.length > 0 || topic?.urls?.some((u) => /^https?:\/\//.test(u.url || u));
 
   const handleReviseClick = () => {
     if (revised) {
@@ -125,159 +126,182 @@ export default function TopicDetails() {
   }
 
   return (
-    <div className="container mt-4">
+    <div className="container px-0 px-lg-3 mt-4">
       <Button variant="link" onClick={() => navigate(-1)} className="mb-3 p-0 text-decoration-none text-decoration-underline-hover">
         ← Back to List
       </Button>
 
       {showEditModal && <TopicModal setShowModal={setShowEditModal} topic={topic} />}
       <div className="card">
-          <div className="card-body">
-            <div className="d-flex justify-content-between align-items-start mb-3">
-              <div>
-                <h2>{topic.topicName}</h2>
-                {topic.subjectName && <span className="badge bg-secondary">{topic.subjectName}</span>}
-              </div>
-              <div className="d-flex gap-2">
-                <BsButtonWithLotties id="resetButtonIcon" icon={resetAnimation} title="Reset Progress" variant="warning" className="p-1" onClick={() => resetTopicProgress({ id })} />
-                <BsButtonWithLotties id="deleteButtonIcon" icon={deleteAnimation} title="Delete" style={{ padding: "4px", paddingBottom: "5px" }} variant="danger" onClick={() => setShowDeleteModal(true)} />
-                <BsButtonWithLotties id="editButtonIcon" icon={editAnimation} title="Edit" className="p-1" variant="info" onClick={() => setShowEditModal(true)} />
-              </div>
+        <div className="card-body">
+          <div className="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <h2>{topic.topicName}</h2>
+              {topic.subjectName && <span className="badge bg-secondary">{topic.subjectName}</span>}
             </div>
-
-            <div className="mb-3">
-              <strong>Description:</strong>
-              <p>{topic.description || "No description"}</p>
-            </div>
-
-            <div className="mb-3">
-              <strong>Date Studied:</strong> {topic.dateStudied ? DateTime.fromISO(topic.dateStudied).toLocaleString(DateTime.DATE_MED) : "N/A"}
-            </div>
-
-            <div className="mb-3">
-              <strong>Next Revision:</strong> {DateTime.fromISO(topic.revisionDate).toLocaleString(DateTime.DATE_MED_WITH_WEEKDAY)}
-            </div>
-
-            <div className="mt-4 text-end">
-              <Button ref={reviseBtnRef} title={revised ? "Mark as Not Revised" : "Revised Topic Today"} variant={!today ? "secondary" : "success"} onClick={handleReviseClick} disabled={isRevising || !today}>
-                {!today ? "Can't Revise Today" : btnString}
-              </Button>
-            </div>
-
-            <div className="mt-4">
-              <h5>Revision History</h5>
-              {history?.length > 0 ? (
-                <div className="table-responsive">
-                  <table className="table table-sm">
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>Quality</th>
-                        <th>E-Factor</th>
-                        <th>Interval</th>
-                        <th>Next Revision</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {history.map((entry, idx) => (
-                        <tr key={idx}>
-                          <td>{DateTime.fromISO(entry.revisionDate).toLocaleString(DateTime.DATETIME_SHORT)}</td>
-                          <td>{entry.finalQuality?.toFixed(1)}</td>
-                          <td>{entry.newEFactor?.toFixed(2)}</td>
-                          <td>{entry.newInterval} days</td>
-                          <td>{DateTime.fromISO(entry.nextRevisionDate).toLocaleString(DateTime.DATE_MED)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-muted">Revise to view history</p>
-              )}
-            </div>
-
-            <div className="mt-4">
-              <h5>Files</h5>
-              <div className="d-flex flex-wrap gap-3">
-                {topic.files?.map((file, idx) => (
-                  <FileCard key={file._id || idx} file={file} topicId={id} />
-                ))}
-                <div
-                  className="file-card file-card-add"
-                  style={{
-                    width: "120px",
-                    height: "120px",
-                    border: "2px dashed #6c757d",
-                    borderRadius: "8px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                  }}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#6c757d" viewBox="0 0 16 16">
-                    <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
-                  </svg>
-                </div>
-                <input ref={fileInputRef} type="file" multiple accept="application/pdf,image/png,image/jpeg,image/jpg,image/gif,image/webp,text/plain" style={{ display: "none" }} onChange={handleFileSelect} />
-              </div>
-              {selectedFiles.length > 0 && (
-                <div className="mt-3">
-                  <ul className="list-group list-group-flush mb-2">
-                    {selectedFiles.map((file, idx) => (
-                      <li key={idx} className="list-group-item d-flex justify-content-between align-items-center py-1 px-2">
-                        <small>
-                          {file.name} ({(file.size / 1024).toFixed(1)} KB)
-                        </small>
-                        <button type="button" className="btn-close btn-close-sm" onClick={() => removeSelectedFile(idx)} disabled={isUploading}></button>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button size="sm" variant="primary" onClick={handleUpload} disabled={isUploading}>
-                    {isUploading ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Uploading...
-                      </>
-                    ) : (
-                      `Upload ${selectedFiles.length} file(s)`
-                    )}
-                  </Button>
-                  {uploadError && <div className="alert alert-danger py-1 px-2 mt-2 mb-0 small">{uploadError.response?.data?.error?.message || uploadError.message}</div>}
-                </div>
-              )}
-            </div>
-
-            <div className="mt-4">
-              <h5>URLs</h5>
-              {urls.map((url, idx) => {
-                const isLast = idx === urls.length - 1;
-                return (
-                  <div className="input-group mb-2" key={idx}>
-                    <input type="text" className="form-control" placeholder="https://..." value={url} onChange={(e) => handleUrlChange(idx, e.target.value)} />
-                    {!isLast ? (
-                      <button className="btn btn-outline-secondary d-flex align-items-center justify-content-center" type="button" onClick={() => removeUrl(idx)}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                          <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708" />
-                        </svg>
-                      </button>
-                    ) : (
-                      <button className="btn btn-outline-secondary d-flex align-items-center justify-content-center" type="button" onClick={addUrl}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                          <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-              <Button size="sm" variant="primary" onClick={saveUrls} disabled={isUpdating || !urls.some((u) => u.trim())}>
-                {isUpdating ? "Saving..." : "Save URLs"}
-              </Button>
+            <div className="d-flex gap-2">
+              <BsButtonWithLotties id="resetButtonIcon" icon={resetAnimation} title="Reset Progress" variant="warning" className="p-1" onClick={() => setShowResetModal(true)} />
+              <BsButtonWithLotties id="deleteButtonIcon" icon={deleteAnimation} title="Delete" style={{ padding: "4px", paddingBottom: "5px" }} variant="danger" onClick={() => setShowDeleteModal(true)} />
+              <BsButtonWithLotties id="editButtonIcon" icon={editAnimation} title="Edit" className="p-1" variant="info" onClick={() => setShowEditModal(true)} />
             </div>
           </div>
-        </div>
 
+          <div className="mb-3">
+            <strong>Description:</strong>
+            <p>{topic.description || "No description"}</p>
+          </div>
+
+          <div className="mb-3">
+            <strong>Date Studied:</strong> {topic.dateStudied ? DateTime.fromISO(topic.dateStudied).toLocaleString(DateTime.DATE_MED) : "N/A"}
+          </div>
+
+          <div className="mb-3">
+            <strong>Next Revision:</strong> {DateTime.fromISO(topic.revisionDate).toLocaleString(DateTime.DATE_MED_WITH_WEEKDAY)}
+          </div>
+
+          <div className="mt-4 text-end">
+            <Button ref={reviseBtnRef} title={revised ? "Mark as Not Revised" : "Revised Topic Today"} variant={!today ? "secondary" : "success"} onClick={handleReviseClick} disabled={isRevising || !today}>
+              {!today ? "Can't Revise Today" : btnString}
+            </Button>
+          </div>
+
+          <Accordion alwaysOpen className="mt-4 mx-sm-neg mb-sm-neg">
+            <Accordion.Item eventKey="materials">
+              <Accordion.Header>Materials</Accordion.Header>
+              <Accordion.Body>
+                <h6>Files</h6>
+                <div className="d-flex flex-wrap gap-3">
+                  {topic.files?.map((file, idx) => (
+                    <FileCard key={file._id || idx} file={file} topicId={id} />
+                  ))}
+                  <div
+                    className="file-card file-card-add"
+                    style={{
+                      width: "120px",
+                      height: "120px",
+                      border: "2px dashed #6c757d",
+                      borderRadius: "8px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#6c757d" viewBox="0 0 16 16">
+                      <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+                    </svg>
+                  </div>
+                  <input ref={fileInputRef} type="file" multiple accept="application/pdf,image/png,image/jpeg,image/jpg,image/gif,image/webp,text/plain" style={{ display: "none" }} onChange={handleFileSelect} />
+                </div>
+                {selectedFiles.length > 0 && (
+                  <div className="mt-3">
+                    <ul className="list-group list-group-flush mb-2">
+                      {selectedFiles.map((file, idx) => (
+                        <li key={idx} className="list-group-item d-flex justify-content-between align-items-center py-1 px-2">
+                          <small>
+                            {file.name} ({(file.size / 1024).toFixed(1)} KB)
+                          </small>
+                          <button type="button" className="btn-close btn-close-sm" onClick={() => removeSelectedFile(idx)} disabled={isUploading}></button>
+                        </li>
+                      ))}
+                    </ul>
+                    <Button size="sm" variant="primary" onClick={handleUpload} disabled={isUploading}>
+                      {isUploading ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Uploading...
+                        </>
+                      ) : (
+                        `Upload ${selectedFiles.length} file(s)`
+                      )}
+                    </Button>
+                    {uploadError && <div className="alert alert-danger py-1 px-2 mt-2 mb-0 small">{uploadError.response?.data?.error?.message || uploadError.message}</div>}
+                  </div>
+                )}
+
+                <hr />
+                <h6>URLs</h6>
+                {urls.map((url, idx) => {
+                  const isLast = idx === urls.length - 1;
+                  return (
+                    <div className="input-group mb-2" key={idx}>
+                      <input type="text" className="form-control" placeholder="https://..." value={url} onChange={(e) => handleUrlChange(idx, e.target.value)} />
+                      {url.trim() && (
+                        <button className="btn btn-outline-secondary d-flex align-items-center justify-content-center" type="button" onClick={() => window.open(url, "_blank")} title="Open in new tab">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                              fillRule="evenodd"
+                              d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z"
+                            />
+                            <path fillRule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z" />
+                          </svg>
+                        </button>
+                      )}
+                      {!isLast ? (
+                        <button className="btn btn-outline-secondary d-flex align-items-center justify-content-center" type="button" onClick={() => removeUrl(idx)}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708" />
+                          </svg>
+                        </button>
+                      ) : (
+                        <button className="btn btn-outline-secondary d-flex align-items-center justify-content-center" type="button" onClick={addUrl}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+                <Button size="sm" variant="primary" onClick={saveUrls} disabled={isUpdating || (!urls.some((u) => u.trim()) && !topic.urls?.length)}>
+                  {isUpdating ? "Saving..." : "Save URLs"}
+                </Button>
+              </Accordion.Body>
+            </Accordion.Item>
+
+            <Accordion.Item eventKey="mindmap">
+              <Accordion.Header>MindMap</Accordion.Header>
+              <Accordion.Body>
+                <MindMapView topic={topic} />
+              </Accordion.Body>
+            </Accordion.Item>
+
+            <Accordion.Item eventKey="history">
+              <Accordion.Header>Revision History</Accordion.Header>
+              <Accordion.Body>
+                {history?.length > 0 ? (
+                  <div className="table-responsive">
+                    <table className="table table-sm">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Quality</th>
+                          <th>E-Factor</th>
+                          <th>Interval</th>
+                          <th>Next Revision</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {history.map((entry, idx) => (
+                          <tr key={idx}>
+                            <td>{DateTime.fromISO(entry.revisionDate).toLocaleString(DateTime.DATETIME_SHORT)}</td>
+                            <td>{entry.finalQuality?.toFixed(1)}</td>
+                            <td>{entry.newEFactor?.toFixed(2)}</td>
+                            <td>{entry.newInterval} days</td>
+                            <td>{DateTime.fromISO(entry.nextRevisionDate).toLocaleString(DateTime.DATE_MED)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-muted mb-0">Revise to view history</p>
+                )}
+              </Accordion.Body>
+            </Accordion.Item>
+          </Accordion>
+        </div>
+      </div>
 
       <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
         <ModalHeader closeButton>
@@ -294,6 +318,27 @@ export default function TopicDetails() {
         </ModalFooter>
       </Modal>
 
+      <Modal show={showResetModal} onHide={() => setShowResetModal(false)} centered>
+        <ModalHeader closeButton>
+          <ModalTitle>Confirm Reset</ModalTitle>
+        </ModalHeader>
+        <ModalBody>Are you sure you want to reset progress for "{topic.topicName}"? This will clear all revision history.</ModalBody>
+        <ModalFooter>
+          <Button variant="secondary" onClick={() => setShowResetModal(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="warning"
+            onClick={() => {
+              resetTopicProgress({ id });
+              setShowResetModal(false);
+            }}
+          >
+            Reset
+          </Button>
+        </ModalFooter>
+      </Modal>
+
       {showChat && <RevisionChat topicId={id} onClose={handleChatClose} />}
 
       <Modal show={showQualityModal} onHide={() => setShowQualityModal(false)} centered>
@@ -304,21 +349,80 @@ export default function TopicDetails() {
           <p>How well did you recall this topic?</p>
           <div className="d-grid gap-2">
             {[5, 4, 3, 2, 1].map((q) => (
-              <Button key={q} variant="outline-success" onClick={() => { setShowQualityModal(false); reviseTopic({ id, quality: { userQuality: q } }); }}>
+              <Button
+                key={q}
+                variant="outline-success"
+                onClick={() => {
+                  setShowQualityModal(false);
+                  reviseTopic({ id, quality: { userQuality: q } });
+                }}
+              >
                 {q} - {q === 5 ? "Perfect" : q === 4 ? "Good" : q === 3 ? "Fair" : q === 2 ? "Poor" : "Very Poor"}
               </Button>
             ))}
           </div>
           <div className="alert alert-info d-flex align-items-center mt-3 mb-0 py-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="me-2 flex-shrink-0" viewBox="0 0 16 16">
-              <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+              <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z" />
             </svg>
-            <span>Upload a file or add a URL to revise with <strong>Reviser</strong> tutor!</span>
+            <span>
+              Upload a file or add a URL to revise with <strong>Reviser</strong> tutor!
+            </span>
           </div>
         </ModalBody>
       </Modal>
     </div>
   );
+}
+
+function MindMapView({ topic }) {
+  const containerRef = useRef(null);
+  const { isPending, mutate: generateMindMap, error } = useTopicMindMapGenerate();
+  const hasContent = topic?.files?.length > 0 || topic?.urls?.some((u) => /^https?:\/\//.test(u.url || u));
+
+  useEffect(() => {
+    if (!containerRef.current || !topic.mindMap) return;
+    const mind = new MindElixir({
+      el: containerRef.current,
+      direction: MindElixir.SIDE,
+      editable: false,
+      contextMenu: true,
+      toolBar: true,
+      nodeMenu: false,
+    });
+    mind.init(JSON.parse(topic.mindMap));
+  }, [topic.topicName, topic.mindMap]);
+
+  if (!topic.mindMap) {
+    if (!hasContent) {
+      return (
+        <div className="alert alert-info d-flex align-items-center mb-0 py-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="me-2 flex-shrink-0" viewBox="0 0 16 16">
+            <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z" />
+          </svg>
+          <span>
+            Upload a file or add a URL to generate a <strong>MindMap</strong>!
+          </span>
+        </div>
+      );
+    }
+    return (
+      <div className="text-center py-4">
+        <Button variant="primary" onClick={() => generateMindMap({ id: topic._id })} disabled={isPending}>
+          {isPending ? (
+            <>
+              <span className="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Generating...
+            </>
+          ) : (
+            "Generate MindMap"
+          )}
+        </Button>
+        {error && <div className="alert alert-danger mt-3 mb-0">{error.response?.data?.error?.message || error.message}</div>}
+      </div>
+    );
+  }
+
+  return <div ref={containerRef} style={{ height: "500px", width: "100%" }} />;
 }
 
 function FileCard({ file, topicId }) {
@@ -401,16 +505,7 @@ function FileCard({ file, topicId }) {
               <path fillRule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z" />
             </svg>
           </Button>
-          <BsButtonWithLotties
-            id={`deleteFileBtn-${file._id}`}
-            icon={deleteAnimation}
-            title="Delete"
-            variant="danger"
-            size="sm"
-            onClick={handleDeleteFile}
-            disabled={isFileDeleting}
-            style={{ padding: "4px", paddingBottom: "5px" }}
-          />
+          <BsButtonWithLotties id={`deleteFileBtn-${file._id}`} icon={deleteAnimation} title="Delete" variant="danger" size="sm" onClick={handleDeleteFile} disabled={isFileDeleting} style={{ padding: "4px", paddingBottom: "5px" }} />
         </div>
       )}
       <div className="text-center">

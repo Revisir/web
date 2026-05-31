@@ -1,7 +1,9 @@
 import { useAuth } from "react-oidc-context";
+import { useState } from "react";
 
 function Login() {
   const auth = useAuth();
+  const [loading, setLoading] = useState(false);
   return (
     //TODO important responsivness
     <>
@@ -13,15 +15,12 @@ function Login() {
               className="btn my-2 w-100"
               style={{ background: "#FB7B76", color: "white" }}
               onClick={() => {
-                document.getElementById("loadingButton").classList.remove("visually-hidden");
-                document.getElementById("loginButtonText").classList.add("visually-hidden");
+                setLoading(true);
                 auth.signinRedirect();
               }}
             >
-              <span id="loadingButton" className="visually-hidden spinner-border spinner-border-sm" aria-hidden="true"></span>
-              <span id="loginButtonText" className="" role="status">
-                Login
-              </span>
+              {loading && <span className="spinner-border spinner-border-sm" aria-hidden="true"></span>}
+              {!loading && <span role="status">Login</span>}
             </button>
           </div>
           <div className="card-footer text-body-secondary">App by Rjnishant</div>

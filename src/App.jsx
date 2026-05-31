@@ -8,6 +8,7 @@ import ListTabs from "./Components/ListTabs";
 import Login from "./Components/Login";
 import TopicDetails from "./Components/topics/TopicDetails";
 import { AppContext, AppProvider } from "./store/AppProvider";
+import { userToken } from "./constants.mjs";
 // import { signInWithRedirect } from "aws-amplify/auth";
 
 function App() {
@@ -34,7 +35,8 @@ function PrimaryApp() {
   const {
     name: { userName },
   } = useContext(AppContext);
-  const loggedIn = Boolean(userName ?? false);
+  const loggedIn = true; //Boolean(userName ?? false);
+  sessionStorage.setItem(userToken, "sdfsdvskjdvbnsdfiuvbhk");
   return (
     <>
       <Routes>

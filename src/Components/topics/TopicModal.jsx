@@ -1,6 +1,7 @@
 import { Modal, ModalBody, ModalFooter, ModalHeader, ModalTitle } from "react-bootstrap";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { useTopicCreate, useTopicUpdate } from "../../hooks/useTopicQuery";
+import { useSubjectSuggestions } from "../../hooks/useSubjectSuggestions";
 import { DateTime } from "luxon";
 
 export default function TopicModal({ setShowModal, topic }) {
@@ -18,13 +19,16 @@ export default function TopicModal({ setShowModal, topic }) {
           subjectName: topic.subjectName,
           description: topic.description || "",
           dateStudied: topic.dateStudied ? DateTime.fromISO(topic.dateStudied).toISODate() : "",
-          urls: topic.urls?.length ? topic.urls.map((u) => ({ value: u })) : [{ value: "" }],
+          urls: topic.urls?.length ? topic.urls.map((u) => ({ value: u.url || u })) : [{ value: "" }],
         }
       : {
           urls: [{ value: "" }],
         },
   });
   const { fields, append, remove } = useFieldArray({ name: "urls", control });
+
+  const subjectInput = useWatch({ control, name: "subjectName" }) || "";
+  const subjects = useSubjectSuggestions(subjectInput);
 
   const { isPending: isCreating, mutate: createTopic } = useTopicCreate();
   const { isPending: isUpdating, mutate: updateTopic } = useTopicUpdate();
@@ -36,15 +40,9 @@ export default function TopicModal({ setShowModal, topic }) {
   const onSubmit = async (formData) => {
     formData.urls = formData.urls.map((u) => u.value);
     if (isEdit) {
-      updateTopic(
-        { id: topic._id, formData },
-        { onSettled: () => setShowModal(false) },
-      );
+      updateTopic({ id: topic._id, formData }, { onSettled: () => setShowModal(false) });
     } else {
-      createTopic(
-        { formData },
-        { onSettled: () => setShowModal(false) },
-      );
+      createTopic({ formData }, { onSettled: () => setShowModal(false) });
     }
   };
 
@@ -64,14 +62,12 @@ export default function TopicModal({ setShowModal, topic }) {
             <label htmlFor="topicName">Topic Name</label>
           </div>
           <div className="form-floating mb-3">
-            <input id="subjectName" type="text" className={`form-control ${errors.subject ? "is-invalid" : ""}`} placeholder="Which Subject?" {...register("subjectName", { required: true })} list="datalistOptions" />
+            <input id="subjectName" type="text" className={`form-control ${errors.subjectName ? "is-invalid" : ""}`} placeholder="Which Subject?" {...register("subjectName", { required: true })} list="subjectSuggestions" autoComplete="off" />
             <label htmlFor="subjectName">Subject</label>
-            <datalist id="datalistOptions">
-              <option value="San Francisco" />
-              <option value="New York" />
-              <option value="Seattle" />
-              <option value="Los Angeles" />
-              <option value="Chicago" />
+            <datalist id="subjectSuggestions">
+              {subjects.map((s) => (
+                <option key={s} value={s} />
+              ))}
             </datalist>
           </div>
           <div className="form-floating mb-3">
@@ -84,13 +80,19 @@ export default function TopicModal({ setShowModal, topic }) {
           </div>
           <div className="mb-3">
             <label htmlFor="basic-url" className="form-label">
-              Useful links
+              Links
             </label>
             {fields.map((field, index) => {
               const isLast = index === fields.length - 1;
               return (
                 <div className="input-group mb-3" key={field.id}>
-                  <input type="text" className={`form-control ${errors.urls?.[index]?.value ? "is-invalid" : ""}`} placeholder="Link" aria-label="Link" {...register(`urls.${index}.value`, { required: !isLast, pattern: !isLast ? /^https?:\/\/.+/ : undefined })} />
+                  <input
+                    type="text"
+                    className={`form-control ${errors.urls?.[index]?.value ? "is-invalid" : ""}`}
+                    placeholder="Link"
+                    aria-label="Link"
+                    {...register(`urls.${index}.value`, { required: !isLast, pattern: !isLast ? /^https?:\/\/.+/ : undefined })}
+                  />
                   {!isLast ? (
                     <button className="btn btn-outline-secondary d-flex align-items-center justify-content-center" type="button" id="add more" style={{ padding: "2px 5px", verticalAlign: "center" }} onClick={() => remove(index)}>
                       <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" className="bi bi-x" viewBox="0 0 16 16">
@@ -120,8 +122,10 @@ export default function TopicModal({ setShowModal, topic }) {
               <span className="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
               <span role="status">{isEdit ? "Saving..." : "Creating..."}</span>
             </>
+          ) : isEdit ? (
+            "Save"
           ) : (
-            isEdit ? "Save" : "Create"
+            "Create"
           )}
         </button>
       </ModalFooter>

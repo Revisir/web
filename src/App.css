@@ -5,3 +5,18 @@
 .text-decoration-underline-hover:hover {
   text-decoration: underline !important;
 }
+
+.accordion-button:not(.collapsed) {
+  background-color: transparent !important;
+  color: inherit !important;
+  box-shadow: none !important;
+}
+@media (max-width: 991.98px) {
+  .mx-sm-neg {
+    margin-left: -1rem;
+    margin-right: -1rem;
+  }
+  .mb-sm-neg {
+    margin-bottom: -1rem;
+  }
+}

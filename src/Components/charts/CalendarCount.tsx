@@ -1,14 +1,13 @@
 import * as echarts from "echarts";
 import { DateTime } from "luxon";
-import { useEffect, useMemo, useState } from "react";
-import { useRef } from "react";
-import useDimensions from "../../hooks/useDimensions";
+import { useMemo, useState } from "react";
+import useDynamicWidth from "../../hooks/useDynamicWidth";
+import useCharts from "../../hooks/useCharts";
 
 export default function CalendarCount({ data }) {
   const today = DateTime.now();
   const oneMonthAhead = DateTime.now().plus({ months: 1 });
-  const chartRef = useRef<HTMLDivElement>(null);
-  const chartClassRef = useRef<echarts.ECharts>(null);
+  const [chartClass, setChartClass] = useState<echarts.ECharts>();
   const dateData = useMemo(() => {
     let tempDate = today;
     const dataSet = [];
@@ -18,9 +17,13 @@ export default function CalendarCount({ data }) {
     }
     return dataSet;
   }, [today, oneMonthAhead]);
-  const dimension = useDimensions();
-  const [chartDim, setChartDim] = useState({ height: 300, width: 400 });
-  const [cellSize, setCellsize] = useState(40);
+
+  const { chartRef, chartParentRef, chartDim } = useDynamicWidth(chartClass, {
+    lg: { height: 400, width: 400, cellSize: 40, setParentWidth: true },
+    md: { height: 400, width: 400, cellSize: 40, setParentWidth: true },
+    sm: { height: 400, width: "auto", cellSize: 35, setParentWidth: true },
+  });
+
   const option: echarts.EChartsOption = useMemo(() => {
     return {
       title: {
@@ -46,7 +49,7 @@ export default function CalendarCount({ data }) {
           firstDay: 1,
           nameMap: "en",
         },
-        cellSize: cellSize,
+        cellSize: chartDim.cellSize as number,
         range: [today.toISODate(), oneMonthAhead.toISODate()],
       },
 
@@ -61,7 +64,7 @@ export default function CalendarCount({ data }) {
             formatter: function (params: { value: [string, number] }) {
               return echarts.time.format(params.value[0], "{dd}", false);
             },
-            offset: [-cellSize / 2 + 10, -cellSize / 2 + 10],
+            offset: [-(chartDim.cellSize as number) / 2 + 10, -(chartDim.cellSize as number) / 2 + 10],
             color: "#000",
           },
           silent: true,
@@ -102,40 +105,13 @@ export default function CalendarCount({ data }) {
         },
       ],
     } as echarts.EChartsOption;
-  }, [data, dateData, oneMonthAhead, today, cellSize]);
-  useEffect(() => {
-    if (!chartRef.current) return;
+  }, [data, dateData, oneMonthAhead, today, chartDim]);
 
-    chartClassRef.current = echarts.init(chartRef.current, null, {
-      renderer: "canvas",
-      useDirtyRect: false,
-    });
-    chartClassRef.current.setOption(option);
-
-    return () => {
-      if (chartClassRef.current) echarts.dispose(chartClassRef.current);
-    };
-  }, [chartRef, option]);
-
-  useEffect(() => {
-    if (!chartClassRef.current) return;
-    const currentViewPortWidth = dimension.width;
-    if (currentViewPortWidth >= 992) {
-      setChartDim({ height: 350, width: 400 });
-      setCellsize(40);
-    } else {
-      setChartDim({ height: 350, width: 400 });
-      setCellsize(35);
-    }
-  }, [dimension, chartClassRef]);
-
-  useEffect(() => {
-    chartClassRef.current?.resize({ width: chartDim.width, height: chartDim.height });
-  }, [chartDim]);
+  useCharts(chartRef, option, chartClass, setChartClass);
 
   return (
-    <div className="card mw-100 overflow-x-auto" style={{ height: `${chartDim.height}px`, width: `${chartDim.width}px` }}>
-      <div ref={chartRef} style={{ height: `${chartDim.height}px`, width: `${chartDim.width}px` }} />
+    <div ref={chartParentRef} className="card" style={{ height: `${chartDim.height}px`, width: `${chartDim.width}px` }}>
+      <div ref={chartRef} />
     </div>
   );
 }
