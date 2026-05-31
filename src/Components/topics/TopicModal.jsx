@@ -91,6 +91,7 @@ export default function TopicModal({ setShowModal, topic }) {
                     className={`form-control ${errors.urls?.[index]?.value ? "is-invalid" : ""}`}
                     placeholder="Link"
                     aria-label="Link"
+                    autoComplete="off"
                     {...register(`urls.${index}.value`, { required: !isLast, pattern: !isLast ? /^https?:\/\/.+/ : undefined })}
                   />
                   {!isLast ? (
