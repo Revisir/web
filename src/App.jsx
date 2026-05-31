@@ -35,8 +35,7 @@ function PrimaryApp() {
   const {
     name: { userName },
   } = useContext(AppContext);
-  const loggedIn = true; //Boolean(userName ?? false);
-  sessionStorage.setItem(userToken, "sdfsdvskjdvbnsdfiuvbhk");
+  const loggedIn = Boolean(userName ?? false);
   return (
     <>
       <Routes>
