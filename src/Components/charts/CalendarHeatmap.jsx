@@ -48,7 +48,7 @@ export default function CalendarHeatMap({ data }) {
   useCharts(chartRef, option, chartClass, setChartClass);
 
   return (
-    <div ref={chartParentRef} className="card mw-100 overflow-auto">
+    <div ref={chartParentRef} className="card mw-100 overflow-auto" style={{ border: 0 }}>
       <div ref={chartRef} />
     </div>
   );

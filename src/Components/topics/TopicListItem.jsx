@@ -24,8 +24,6 @@ const TopicListItem = memo(({ id }) => {
   const { revised, today, next_revision } = extractRevisionBooleans({ lastRevised: item.lastRevised, revisionDate: item.revisionDate });
   const btnString = reviseBtnText(revised, reviseBtnHovering);
 
-  console.log("Rendering ", id, item);
-
   const handleRevised = (event, id) => {
     reviseTopic({ id, quality: { userQuality: 3 } });
   };

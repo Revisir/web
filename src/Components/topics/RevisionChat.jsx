@@ -36,7 +36,10 @@ export default function RevisionChat({ topicId, onClose }) {
       if (sessionComplete) setPhase("quality");
     },
     onError: (err) => {
-      setMessages((prev) => [...prev, { role: "assistant", text: "Error: " + (err.response?.data?.error?.message || "Failed to get response") }]);
+      const msg = err.response?.data?.error?.code === "AI_NOT_CONFIGURED"
+        ? "AI is not set up. Please contact the administrator to configure AI services."
+        : err.response?.data?.error?.message || "Failed to get response";
+      setMessages((prev) => [...prev, { role: "assistant", text: msg }]);
     },
   });
 
@@ -76,7 +79,13 @@ export default function RevisionChat({ topicId, onClose }) {
         <ModalTitle>{phase === "quality" ? "Rate Your Recall" : "Revision Chat"}</ModalTitle>
       </ModalHeader>
       <ModalBody>
-        {startMutation.isError && <div className="alert alert-danger">{startMutation.error?.response?.data?.error?.message || "Failed to start chat"}</div>}
+        {startMutation.isError && (
+          <div className="alert alert-danger">
+            {startMutation.error?.response?.data?.error?.code === "AI_NOT_CONFIGURED"
+              ? "AI is not set up. Please contact the administrator to configure AI services."
+              : startMutation.error?.response?.data?.error?.message || "Failed to start chat"}
+          </div>
+        )}
         {phase === "loading" && (
           <div className="text-center py-4">
             <div className="spinner-border" role="status" />

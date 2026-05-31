@@ -110,7 +110,7 @@ export default function CalendarCount({ data }) {
   useCharts(chartRef, option, chartClass, setChartClass);
 
   return (
-    <div ref={chartParentRef} className="card" style={{ height: `${chartDim.height}px`, width: `${chartDim.width}px` }}>
+    <div ref={chartParentRef} className="card" style={{ border: 0 }}>
       <div ref={chartRef} />
     </div>
   );

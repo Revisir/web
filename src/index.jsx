@@ -7,12 +7,12 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import { AuthProvider } from "react-oidc-context";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const cognitoAuthConfig = {
-  authority: "https://cognito-idp.ap-south-1.amazonaws.com/ap-south-1_kAEibA6fs",
-  client_id: "6chhv3rf7dik3j5gbjic2f9g82",
+const authConfig = {
+  authority: import.meta.env.VITE_AUTH_AUTHORITY,
+  client_id: import.meta.env.VITE_AUTH_CLIENT_ID,
   redirect_uri: `${window.location.origin}/callback`,
   response_type: "code",
-  scope: "email openid phone",
+  scope: "email openid phone profile",
 };
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,7 +27,7 @@ window.__TANSTACK_QUERY_CLIENT__ = queryClient;
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   // <React.StrictMode>
-  <AuthProvider {...cognitoAuthConfig}>
+  <AuthProvider {...authConfig}>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <App />

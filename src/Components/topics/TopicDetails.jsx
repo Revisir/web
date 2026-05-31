@@ -417,7 +417,13 @@ function MindMapView({ topic }) {
             "Generate MindMap"
           )}
         </Button>
-        {error && <div className="alert alert-danger mt-3 mb-0">{error.response?.data?.error?.message || error.message}</div>}
+        {error && (
+          <div className="alert alert-danger mt-3 mb-0">
+            {error.response?.data?.error?.code === "AI_NOT_CONFIGURED"
+              ? "AI is not set up. Please contact the administrator to configure AI services."
+              : error.response?.data?.error?.message || error.message}
+          </div>
+        )}
       </div>
     );
   }

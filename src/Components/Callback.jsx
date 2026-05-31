@@ -12,9 +12,9 @@ function Callback() {
     console.log(auth?.user);
     if (auth?.user) {
       console.log(auth?.user);
-      const { access_token, profile } = auth.user;
-      sessionStorage.setItem(userToken, access_token.toString());
-      setName({ payload: { name: profile["cognito:username"].toUpperCase() }, type: UPDATE_LOGGED_IN_USER_NAME });
+      const { id_token, profile } = auth.user;
+      sessionStorage.setItem(userToken, id_token.toString());
+      setName({ payload: { name: profile["preferred_username"].toUpperCase() }, type: UPDATE_LOGGED_IN_USER_NAME });
     }
   }, [setName, auth.isAuthenticated]);
 

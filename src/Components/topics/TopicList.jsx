@@ -8,7 +8,7 @@ export default function TopicList({ listKey, loader }) {
   const [inputActive, setInputActive] = useState(false);
   const [sorting, setSorting] = useState([]);
   const [page, setPage] = useState(1);
-  console.log("Rendering ", listKey);
+
   const { data, totalPages, isFetched } = useTopicsList(listKey, loader, page);
 
   const columns = useMemo(

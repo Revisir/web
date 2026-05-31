@@ -30,10 +30,9 @@ export function useTopicsList(listKey: string, loader: (page?: number) => Promis
     staleTime: Infinity,
   });
   const qClient = useQueryClient();
-  console.log("runnign hook useTopicsList", data);
+
   useEffect(() => {
     if (data?.topics) {
-      console.log("Putting in details for", listKey);
       for (const topic of data.topics) {
         qClient.setQueryData([MIN_TOPIC_DETAILS, String(topic._id)], topic);
       }
