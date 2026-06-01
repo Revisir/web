@@ -44,7 +44,8 @@
   },
   "scripts": {
     "dev": " vite",
-    "build": "vite build"
+    "build": "vite build",
+    "docker:build": "docker build . -t rjnishant530/revisir-fe:%npm_package_version% -t rjnishant530/revisir-fe:latest"
   },
   "eslintConfig": {
     "extends": [

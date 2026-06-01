@@ -2,7 +2,7 @@ import axios from "axios";
 import { userName, userToken } from "../constants.mjs";
 import { DateTime } from "luxon";
 import { signOutRedirect } from "../utils.mjs";
-const baseUrl = `http://${window.location.hostname}:5000/api`;
+const baseUrl = import.meta.env.VITE_BACKEND_URL;
 
 export const AxiosInstancePrivate = () => {
   const axiosInstance = new axios.create({

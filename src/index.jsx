@@ -10,7 +10,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const authConfig = {
   authority: import.meta.env.VITE_AUTH_AUTHORITY,
   client_id: import.meta.env.VITE_AUTH_CLIENT_ID,
-  redirect_uri: `${window.location.origin}/callback`,
+  redirect_uri: `${import.meta.env.VITE_CLIENT_URL}/callback`,
   response_type: "code",
   scope: "email openid phone profile",
 };
