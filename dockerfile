@@ -17,5 +17,7 @@ FROM node:24-alpine
 RUN npm install -g serve
 WORKDIR /app
 COPY --from=build /app/dist .
-ENTRYPOINT ["serve", "-s", "."]
-CMD ["-l", "3000"]
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["serve", "-s", ".", "-l", "3000"]

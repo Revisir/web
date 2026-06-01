@@ -148,16 +148,9 @@ export function useTopicDelete() {
   const qClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id }: { id: string }) => deleteTopic(id),
-    onSuccess: (res, { id }) => {
-      qClient.setQueryData([DUE_TOPIC_KEY], (oldDetail: ListData) => {
-        const new_array = oldDetail?.topics.filter((ele) => ele._id !== id);
-        return { ...oldDetail, topics: new_array };
-      });
-
-      qClient.setQueryData([ALL_TOPIC_KEY], (oldDetail: ListData) => {
-        const new_array = oldDetail?.topics.filter((ele) => ele._id !== id);
-        return { ...oldDetail, topics: new_array };
-      });
+    onSuccess: (_, { id }) => {
+      qClient.invalidateQueries({ queryKey: [DUE_TOPIC_KEY] });
+      qClient.invalidateQueries({ queryKey: [ALL_TOPIC_KEY] });
       qClient.invalidateQueries({ queryKey: [TOPIC_DETAILS_KEY, String(id)] });
       qClient.invalidateQueries({ queryKey: [TOPIC_HISTORY_KEY, String(id)] });
     },
@@ -172,15 +165,10 @@ export function useTopicCreate() {
       if (res?.revisionDate) {
         const { today } = extractRevisionBooleans(res);
         if (today) {
-          qClient.setQueryData([DUE_TOPIC_KEY], (oldDetail: ListData) => {
-            return { ...oldDetail, topics: [...oldDetail.topics, { ...res, _id: res.topicId }] };
-          });
+          qClient.invalidateQueries({ queryKey: [DUE_TOPIC_KEY] });
         }
       }
-
-      qClient.setQueryData([ALL_TOPIC_KEY], (oldDetail: ListData) => {
-        return { ...oldDetail, topics: [...oldDetail.topics, { ...res, _id: res.topicId }] };
-      });
+      qClient.invalidateQueries({ queryKey: [ALL_TOPIC_KEY] });
     },
   });
 }

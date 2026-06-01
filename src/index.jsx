@@ -6,11 +6,12 @@ import { BrowserRouter } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { AuthProvider } from "react-oidc-context";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { getConfig } from "./config.mjs";
 
 const authConfig = {
-  authority: import.meta.env.VITE_AUTH_AUTHORITY,
-  client_id: import.meta.env.VITE_AUTH_CLIENT_ID,
-  redirect_uri: `${import.meta.env.VITE_CLIENT_URL}/callback`,
+  authority: getConfig("AUTH_AUTHORITY"),
+  client_id: getConfig("AUTH_CLIENT_ID"),
+  redirect_uri: `${getConfig("CLIENT_URL")}/callback`,
   response_type: "code",
   scope: "email openid phone profile",
 };

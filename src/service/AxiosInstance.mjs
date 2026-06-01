@@ -2,7 +2,8 @@ import axios from "axios";
 import { userName, userToken } from "../constants.mjs";
 import { DateTime } from "luxon";
 import { signOutRedirect } from "../utils.mjs";
-const baseUrl = import.meta.env.VITE_BACKEND_URL;
+import { getConfig } from "../config.mjs";
+const baseUrl = getConfig("BACKEND_URL");
 
 export const AxiosInstancePrivate = () => {
   const axiosInstance = new axios.create({
