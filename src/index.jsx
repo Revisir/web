@@ -9,9 +9,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { getConfig } from "./config.mjs";
 
 const authConfig = {
-  authority: getConfig("AUTH_AUTHORITY"),
-  client_id: getConfig("AUTH_CLIENT_ID"),
-  redirect_uri: `${getConfig("CLIENT_URL")}/callback`,
+  authority: getConfig("FE_AUTH_AUTHORITY"),
+  client_id: getConfig("FE_AUTH_CLIENT_ID"),
+  redirect_uri: `${getConfig("FE_CLIENT_URL")}/callback`,
   response_type: "code",
   scope: "email openid phone profile",
 };

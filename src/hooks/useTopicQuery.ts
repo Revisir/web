@@ -139,6 +139,7 @@ export function useTopicRevise() {
         }),
 
         qClient.invalidateQueries({ queryKey: [TOPIC_HISTORY_KEY, String(id)] }),
+        qClient.invalidateQueries({ queryKey: ["stats"] }),
       ]);
     },
   });
@@ -153,6 +154,7 @@ export function useTopicDelete() {
       qClient.invalidateQueries({ queryKey: [ALL_TOPIC_KEY] });
       qClient.invalidateQueries({ queryKey: [TOPIC_DETAILS_KEY, String(id)] });
       qClient.invalidateQueries({ queryKey: [TOPIC_HISTORY_KEY, String(id)] });
+      qClient.invalidateQueries({ queryKey: ["stats"] });
     },
   });
 }
@@ -169,6 +171,7 @@ export function useTopicCreate() {
         }
       }
       qClient.invalidateQueries({ queryKey: [ALL_TOPIC_KEY] });
+      qClient.invalidateQueries({ queryKey: ["stats"] });
     },
   });
 }

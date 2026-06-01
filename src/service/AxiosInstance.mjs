@@ -3,7 +3,7 @@ import { userName, userToken } from "../constants.mjs";
 import { DateTime } from "luxon";
 import { signOutRedirect } from "../utils.mjs";
 import { getConfig } from "../config.mjs";
-const baseUrl = getConfig("BACKEND_URL");
+const baseUrl = getConfig("FE_BACKEND_URL");
 
 export const AxiosInstancePrivate = () => {
   const axiosInstance = new axios.create({

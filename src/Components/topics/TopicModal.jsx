@@ -34,11 +34,16 @@ export default function TopicModal({ setShowModal, topic }) {
   const { isPending: isUpdating, mutate: updateTopic } = useTopicUpdate();
   const isPending = isEdit ? isUpdating : isCreating;
 
-  const maxDate = DateTime.now().startOf("day").toJSDate();
-  const minDate = DateTime.now().minus({ days: 5 }).startOf("day").toJSDate();
+  const maxDate = DateTime.now().toISODate();
+  const minDate = DateTime.now().minus({ days: 5 }).toISODate();
 
   const onSubmit = async (formData) => {
-    formData.urls = formData.urls.map((u) => u.value);
+    const urls = formData.urls.map((u) => u.value).filter(Boolean);
+    if (urls.length) {
+      formData.urls = urls;
+    } else {
+      delete formData.urls;
+    }
     if (isEdit) {
       updateTopic({ id: topic._id, formData }, { onSettled: () => setShowModal(false) });
     } else {
