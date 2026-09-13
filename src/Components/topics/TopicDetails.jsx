@@ -7,14 +7,17 @@ import MindElixir from "mind-elixir";
 import "mind-elixir/style.css";
 import TopicModal from "./TopicModal";
 import RevisionChat from "./RevisionChat";
+import PdfPageSelector from "./PdfPageSelector";
+import ForgettingCurve from "../charts/ForgettingCurve";
 import editAnimation from "../../lotties/edit.json";
 import deleteAnimation from "../../lotties/trashV2.json";
 import resetAnimation from "../../lotties/refresh.json";
 import LottieAnimation from "../lotties/LottiesAnimation";
 import BsButtonWithLotties from "../lotties/BsButtonWithLotties";
-import { useTopicDetails, useTopicHistory, useTopicRevise, useTopicDelete, useTopicFileUpload, useTopicFileDelete, useTopicReset, useTopicUpdate, useTopicMindMapGenerate } from "../../hooks/useTopicQuery";
+import { useTopicDetails, useTopicHistory, useTopicForgettingCurve, useTopicRevise, useTopicDelete, useTopicFileUpload, useTopicFileDelete, useTopicReset, useTopicUpdate, useTopicMindMapGenerate, TOPIC_DETAILS_KEY } from "../../hooks/useTopicQuery";
 import { extractRevisionBooleans, reviseBtnText } from "../../utils/topics.utils";
 import useHover from "../../hooks/useHover";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function TopicDetails() {
   const { id } = useParams();
@@ -33,6 +36,7 @@ export default function TopicDetails() {
   const { isFetched, data: topic } = useTopicDetails(id);
   const { data: historyObj } = useTopicHistory(id);
   const history = historyObj?.history;
+  const { data: forgettingCurveData } = useTopicForgettingCurve(id);
 
   const { isPending: isRevising, mutate: reviseTopic } = useTopicRevise();
   const { isPending: isDeleting, mutate: deleteTopic } = useTopicDelete();
@@ -41,6 +45,8 @@ export default function TopicDetails() {
   const { mutate: resetTopicProgress } = useTopicReset();
   const fileInputRef = useRef(null);
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const [uploadStatus, setUploadStatus] = useState(null);
+  const [pdfToProcess, setPdfToProcess] = useState(null); // PDF file awaiting page selection
 
   const [reviseBtnRef, reviseBtnHovering] = useHover();
   ({ revised, today } = useMemo(() => extractRevisionBooleans({ lastRevised: topic?.lastRevised, revisionDate: topic?.revisionDate }), [topic]));
@@ -49,14 +55,50 @@ export default function TopicDetails() {
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
-    setSelectedFiles((prev) => [...prev, ...files].slice(0, 5));
+
+    // Check if any file is a PDF — if so, open the page selector for it
+    const pdfFile = files.find((f) => f.type === "application/pdf");
+    const nonPdfFiles = files.filter((f) => f.type !== "application/pdf");
+
+    // Add non-PDF files immediately
+    if (nonPdfFiles.length > 0) {
+      setSelectedFiles((prev) => [...prev, ...nonPdfFiles].slice(0, 5));
+    }
+
+    // If there's a PDF, show the page selector modal
+    if (pdfFile) {
+      setPdfToProcess(pdfFile);
+    }
+
     e.target.value = "";
   };
+
+  const handlePdfConfirm = (processedFile) => {
+    setSelectedFiles((prev) => [...prev, processedFile].slice(0, 5));
+    setPdfToProcess(null);
+  };
+
+  const handlePdfCancel = () => {
+    setPdfToProcess(null);
+  };
+
+  const queryClient = useQueryClient();
 
   const handleUpload = () => {
     if (selectedFiles.length === 0) return;
     resetUpload();
-    uploadFiles({ id, files: selectedFiles }, { onSuccess: () => setSelectedFiles([]) });
+    uploadFiles({ id, files: selectedFiles }, {
+      onSuccess: () => {
+        setSelectedFiles([]);
+        setUploadStatus("Uploading file...");
+        setTimeout(() => setUploadStatus("Processing file..."), 2000);
+        setTimeout(() => setUploadStatus("Finalizing..."), 4000);
+        setTimeout(() => {
+          setUploadStatus(null);
+          queryClient.invalidateQueries({ queryKey: [TOPIC_DETAILS_KEY, String(id)] });
+        }, 5000);
+      }
+    });
   };
 
   const removeSelectedFile = (idx) => {
@@ -194,6 +236,12 @@ export default function TopicDetails() {
                   </div>
                   <input ref={fileInputRef} type="file" multiple accept="application/pdf,image/png,image/jpeg,image/jpg,image/gif,image/webp,text/plain" style={{ display: "none" }} onChange={handleFileSelect} />
                 </div>
+                {uploadStatus && (
+                  <div className="alert alert-info d-flex align-items-center py-2 mt-3 mb-0">
+                    <span className="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                    {uploadStatus}
+                  </div>
+                )}
                 {selectedFiles.length > 0 && (
                   <div className="mt-3">
                     <ul className="list-group list-group-flush mb-2">
@@ -206,7 +254,7 @@ export default function TopicDetails() {
                         </li>
                       ))}
                     </ul>
-                    <Button size="sm" variant="primary" onClick={handleUpload} disabled={isUploading}>
+                    <Button size="sm" variant="primary" onClick={handleUpload} disabled={isUploading || !!uploadStatus}>
                       {isUploading ? (
                         <>
                           <span className="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Uploading...
@@ -263,6 +311,17 @@ export default function TopicDetails() {
               <Accordion.Header>MindMap</Accordion.Header>
               <Accordion.Body>
                 <MindMapView topic={topic} />
+              </Accordion.Body>
+            </Accordion.Item>
+
+            <Accordion.Item eventKey="forgetting-curve">
+              <Accordion.Header>Forgetting Curve</Accordion.Header>
+              <Accordion.Body>
+                {forgettingCurveData ? (
+                  <ForgettingCurve data={forgettingCurveData} />
+                ) : (
+                  <p className="text-muted mb-0">Loading retention curve...</p>
+                )}
               </Accordion.Body>
             </Accordion.Item>
 
@@ -340,6 +399,8 @@ export default function TopicDetails() {
       </Modal>
 
       {showChat && <RevisionChat topicId={id} onClose={handleChatClose} />}
+
+      {pdfToProcess && <PdfPageSelector file={pdfToProcess} onConfirm={handlePdfConfirm} onCancel={handlePdfCancel} />}
 
       <Modal show={showQualityModal} onHide={() => setShowQualityModal(false)} centered>
         <ModalHeader closeButton>
@@ -428,7 +489,16 @@ function MindMapView({ topic }) {
     );
   }
 
-  return <div ref={containerRef} style={{ height: "500px", width: "100%" }} />;
+  return (
+    <div>
+      <div className="d-flex justify-content-end mb-2">
+        <Button size="sm" variant="outline-secondary" onClick={() => generateMindMap({ id: topic._id })} disabled={isPending}>
+          {isPending ? <span className="spinner-border spinner-border-sm" aria-hidden="true"></span> : "↻ Regenerate"}
+        </Button>
+      </div>
+      <div ref={containerRef} style={{ height: "500px", width: "100%" }} />
+    </div>
+  );
 }
 
 function FileCard({ file, topicId }) {

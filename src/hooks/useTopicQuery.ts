@@ -1,13 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useEffect } from "react";
-import { getTopic, getTopicHistory, updateTopic, reviseTopic, deleteTopic, addTopic, getFileUploadUrls, deleteTopicFile, resetTopic, generateMindMap } from "../service/topic_service.mjs";
+import { getTopic, getTopicHistory, getTopicForgettingCurve, updateTopic, reviseTopic, deleteTopic, addTopic, getFileUploadUrls, deleteTopicFile, resetTopic, generateMindMap } from "../service/topic_service.mjs";
 import { extractRevisionBooleans } from "../utils/topics.utils";
 export const DUE_TOPIC_KEY = "dueTopics";
 export const ALL_TOPIC_KEY = "allTopics";
 export const MIN_TOPIC_DETAILS = "less_details";
 export const TOPIC_DETAILS_KEY = "details_Topic";
 export const TOPIC_HISTORY_KEY = "history_Topic";
+export const TOPIC_FORGETTING_CURVE_KEY = "forgettingCurve_Topic";
 
 interface TopicListLoader {
   data: Record<string, any>;
@@ -65,6 +66,14 @@ export function useTopicHistory(id: string) {
     enabled: !!id,
   });
 }
+
+export function useTopicForgettingCurve(id: string) {
+  return useQuery({
+    queryKey: [TOPIC_FORGETTING_CURVE_KEY, String(id)],
+    queryFn: () => getTopicForgettingCurve(id),
+    enabled: !!id,
+  });
+}
 export function useTopicUpdate() {
   const qClient = useQueryClient();
   return useMutation({
@@ -92,14 +101,6 @@ export function useTopicRevise() {
     onSuccess: async (res: RevisionResponse, { id }) => {
       await Promise.all([
         qClient.setQueryData([MIN_TOPIC_DETAILS, String(id)], (oldDetail: object) => {
-          if (!oldDetail) return oldDetail;
-          return {
-            ...oldDetail,
-            lastRevised: res.lastRevised,
-            revisionDate: res.nextRevisionDate,
-          };
-        }),
-        qClient.setQueryData([TOPIC_DETAILS_KEY, String(id)], (oldDetail: object) => {
           if (!oldDetail) return oldDetail;
           return {
             ...oldDetail,
@@ -138,7 +139,9 @@ export function useTopicRevise() {
           };
         }),
 
+        qClient.invalidateQueries({ queryKey: [TOPIC_DETAILS_KEY, String(id)] }),
         qClient.invalidateQueries({ queryKey: [TOPIC_HISTORY_KEY, String(id)] }),
+        qClient.invalidateQueries({ queryKey: [TOPIC_FORGETTING_CURVE_KEY, String(id)] }),
         qClient.invalidateQueries({ queryKey: ["stats"] }),
       ]);
     },
@@ -198,7 +201,7 @@ export function useTopicFileUpload() {
       );
     },
     onSuccess: (_, { id }) => {
-      qClient.invalidateQueries({ queryKey: [TOPIC_DETAILS_KEY, String(id)] });
+      // Invalidation handled by component after processing delay
     },
   });
 }

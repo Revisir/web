@@ -48,6 +48,11 @@ export async function getTopicHistory(id) {
   return response?.data;
 }
 
+export async function getTopicForgettingCurve(id) {
+  const response = await axios.get(`${api.topic(id)}/forgetting-curve`);
+  return response?.data;
+}
+
 export async function getFileUploadUrls(id, files) {
   const response = await axios.post(`${api.topic(id)}/files`, { files });
   return response?.data;
