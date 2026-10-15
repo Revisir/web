@@ -10,18 +10,20 @@ export default defineConfig([
   globalIgnores(["dist"]),
   {
     files: ["**/*.{ts,tsx}"],
-    extends: [tseslint.configs.recommended, reactHooks.configs.flat.recommended, reactRefresh.configs.vite],
+    extends: [tseslint.configs.recommended, reactHooks.configs.flat.recommended, reactRefresh.configs.vite, pluginQuery.configs["flat/recommended"]],
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
     },
   },
   {
-    files: ["**/*.{js,jsx}"],
+    files: ["**/*.{js,jsx,mjs}"],
     extends: [js.configs.recommended, reactHooks.configs.flat.recommended, reactRefresh.configs.vite, pluginQuery.configs["flat/recommended"]],
     languageOptions: {
-      ecmaVersion: 2020,
+      ecmaVersion: "latest",
+      sourceType: "module",
       globals: globals.browser,
+      parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
 ]);
