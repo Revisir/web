@@ -1,3 +1,6 @@
+a.header__icon {
+  color: inherit;
+}
 .header__icon:hover {
   cursor: pointer;
   border-radius: 50%;

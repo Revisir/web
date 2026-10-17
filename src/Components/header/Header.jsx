@@ -1,6 +1,7 @@
 import "./Header.css";
 
 import { useContext, useState } from "react";
+import { Link } from "react-router-dom";
 import { AppContext } from "../../store/AppProvider";
 import { REMOVE_LOGGED_IN_USER_NAME } from "../../store/reducers/loggedInReducer.mjs";
 import { TOGGLE_THEME } from "../../store/reducers/themeReducer.mjs";
@@ -48,6 +49,11 @@ function Header() {
                   </svg>
                 )}
               </div>
+              <Link to="/settings" className="me-4 header__icon" title="Settings" aria-label="Settings">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" className="bi bi-gear-fill" viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z" />
+                </svg>
+              </Link>
               <div className="me-4 d-none d-sm-block header__icon" onClick={addNewTopic}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" className="bi bi-patch-plus" viewBox="0 0 16 16">
                   <path fillRule="evenodd" d="M8 5.5a.5.5 0 0 1 .5.5v1.5H10a.5.5 0 0 1 0 1H8.5V10a.5.5 0 0 1-1 0V8.5H6a.5.5 0 0 1 0-1h1.5V6a.5.5 0 0 1 .5-.5" />

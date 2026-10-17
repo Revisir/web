@@ -7,6 +7,7 @@ import Callback from "./Components/Callback";
 import ListTabs from "./Components/ListTabs";
 import Login from "./Components/Login";
 import TopicDetails from "./Components/topics/TopicDetails";
+import Settings from "./Components/settings/Settings";
 import { AppContext, AppProvider } from "./store/AppProvider";
 import { userToken } from "./constants.mjs";
 // import { signInWithRedirect } from "aws-amplify/auth";
@@ -42,6 +43,7 @@ function PrimaryApp() {
         <Route element={<AppLayout />}>
           <Route path="/" element={loggedIn ? <ListTabs /> : <Login />} />
           <Route path="/topic/:id" element={loggedIn ? <TopicDetails /> : <Navigate to="/" />} />
+          <Route path="/settings" element={loggedIn ? <Settings /> : <Navigate to="/" />} />
         </Route>
         <Route path="/callback" element={loggedIn ? <Navigate to={"/"} /> : <Callback />} />
       </Routes>
