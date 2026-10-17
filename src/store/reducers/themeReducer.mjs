@@ -3,10 +3,9 @@ export const SET_THEME = "SET_THEME";
 
 const THEME_KEY = "reviser-theme";
 
-// shadcn reads the `dark` class; Bootstrap reads data-bs-theme until U15 removes it.
+// The theme tokens in index.css switch on the `dark` class.
 function applyTheme(theme) {
   document.documentElement.classList.toggle("dark", theme === "dark");
-  document.documentElement.setAttribute("data-bs-theme", theme);
 }
 
 export function themeStateInit() {

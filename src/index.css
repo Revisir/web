@@ -1,10 +1,6 @@
-/* Bootstrap stays until U15 moves the last screens off it, in a layer below Tailwind's components and utilities (KTD21). */
-@layer theme, base, bootstrap, components, utilities;
-
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "bootstrap/dist/css/bootstrap.min.css" layer(bootstrap);
 @import "@fontsource-variable/inter";
 @import "@fontsource-variable/jetbrains-mono";
 
@@ -191,21 +187,5 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
-  }
-}
-
-/* Transitional bridge: screens still on Bootstrap read the Stitch roles. Removed with Bootstrap in U15. */
-@layer components {
-  :root,
-  [data-bs-theme] {
-    --bs-body-bg: var(--background);
-    --bs-body-color: var(--foreground);
-    --bs-emphasis-color: var(--foreground);
-    --bs-secondary-color: var(--muted-foreground);
-    --bs-secondary-bg: var(--surface-container);
-    --bs-tertiary-bg: var(--surface-container-low);
-    --bs-border-color: var(--border);
-    --bs-body-font-family: var(--font-sans);
-    --bs-font-monospace: var(--font-mono);
   }
 }
