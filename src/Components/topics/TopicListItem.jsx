@@ -1,31 +1,34 @@
 import { DateTime } from "luxon";
-import { Button, Modal, ModalBody, ModalFooter, ModalHeader, ModalTitle } from "react-bootstrap";
-import { extractRevisionBooleans, reviseBtnText } from "../../utils/topics.utils";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState, memo } from "react";
+import { CalendarDays, Pencil, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/Components/ui/alert-dialog";
+import IconButton from "@/Components/common/IconButton";
+import { extractRevisionBooleans } from "../../utils/topics.utils";
+import { useMinTopicDetails, useTopicDelete } from "../../hooks/useTopicQuery";
 
-import { useMinTopicDetails, useTopicDelete, useTopicRevise } from "../../hooks/useTopicQuery";
-import useHover from "../../hooks/useHover";
-import { Pencil, Trash2 } from "lucide-react";
-import IconButton from "../common/IconButton";
-
+// A due topic is reviewed from the queue or its topic page, so the row carries no rating control (R44).
+/** @type {import("react").NamedExoticComponent<{ id: string }>} */
 const TopicListItem = memo(({ id }) => {
   const navigate = useNavigate();
-  const { data: item, isFetching } = useMinTopicDetails(id);
+  const { data: item } = useMinTopicDetails(id);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const { isPending: isDeleting, mutate: deleteTopic } = useTopicDelete();
-  const { isPending: isRevising, mutate: reviseTopic } = useTopicRevise();
 
-  const [reviseBtnRef, reviseBtnHovering] = useHover();
   if (!item) {
     return null;
   }
-  const { revised, today, next_revision } = extractRevisionBooleans({ lastRevised: item.lastRevised, revisionDate: item.revisionDate });
-  const btnString = reviseBtnText(revised, reviseBtnHovering);
-
-  const handleRevised = (event, id) => {
-    reviseTopic({ id, quality: { userQuality: 3 } });
-  };
+  const { next_revision } = extractRevisionBooleans({ lastRevised: item.lastRevised, revisionDate: item.revisionDate });
+  const topicName = item.topicName || item.topic_name;
 
   const handleDelete = async () => {
     try {
@@ -37,27 +40,19 @@ const TopicListItem = memo(({ id }) => {
   };
   return (
     <>
-      <div className="list-group-item list-group-item-action" style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}>
-        <div className="d-flex justify-content-between align-items-center">
-          <div
-            className="flex-grow-1"
-            style={{ cursor: "pointer" }}
-            onClick={() => {
-              navigate(`/topic/${item._id}`);
-            }}
-          >
-            <span className="pt-1">
-              <strong>{item.topicName || item.topic_name}</strong>
-              <small className="d-block text-body-secondary">
-                {item.subjectName && <span className="me-2 badge bg-secondary">{item.subjectName}</span>}
-                <svg className="bi me-1" width="1em" height="1em">
-                  <use xlinkHref="#calendar-event"></use>
-                </svg>
-                {next_revision.toLocaleString(DateTime.DATE_MED_WITH_WEEKDAY)}
-              </small>
+      <div className="px-4 py-2 transition-colors hover:bg-surface-container">
+        <div className="flex items-center justify-between gap-2">
+          <Link to={`/topic/${item._id}`} className="min-w-0 flex-1 text-foreground no-underline hover:text-foreground">
+            <span className="block pt-1 text-body-md font-semibold break-words">{topicName}</span>
+            <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-body-sm text-muted-foreground">
+              {item.subjectName && <span className="max-w-full truncate rounded bg-primary/15 px-2 py-0.5 font-mono text-mono-sm font-semibold uppercase text-primary">{item.subjectName}</span>}
+              <span className="inline-flex items-center gap-1">
+                <CalendarDays aria-hidden="true" className="size-3.5" />
+                <span className="font-mono text-mono-sm">{next_revision.toLocaleString(DateTime.DATE_MED_WITH_WEEKDAY)}</span>
+              </span>
             </span>
-          </div>
-          <div className=" d-flex gap-2 ">
+          </Link>
+          <div className="flex gap-2">
             <IconButton
               label="Delete"
               variant="destructive"
@@ -84,40 +79,24 @@ const TopicListItem = memo(({ id }) => {
             >
               <Pencil />
             </IconButton>
-
-            {today && (
-              <Button
-                variant={revised ? "success" : "outline-success"}
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRevised(e, item._id);
-                }}
-                title={revised ? "Revised" : "Mark as Revised"}
-                disabled={isFetching || isRevising}
-                ref={reviseBtnRef}
-              >
-                {isRevising ? <span className="spinner-border spinner-border-sm" aria-hidden="true"></span> : btnString}
-              </Button>
-            )}
           </div>
         </div>
       </div>
 
-      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
-        <ModalHeader closeButton>
-          <ModalTitle>Confirm Delete</ModalTitle>
-        </ModalHeader>
-        <ModalBody>Are you sure you want to delete "{item.topicName || item.topic_name}"?</ModalBody>
-        <ModalFooter>
-          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
-            Cancel
-          </Button>
-          <Button variant="danger" onClick={handleDelete}>
-            Delete
-          </Button>
-        </ModalFooter>
-      </Modal>
+      <AlertDialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="m-0">Confirm Delete</AlertDialogTitle>
+            <AlertDialogDescription className="m-0">Are you sure you want to delete "{topicName}"?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleDelete}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 });

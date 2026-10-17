@@ -116,7 +116,7 @@ export default function SunBurstBook({ data }: SunBurstBookProps) {
   useCharts(chartRef, option, chartClass, setChartClass);
 
   return (
-    <div ref={chartParentRef} className="card" style={{ border: 0 }}>
+    <div ref={chartParentRef} className="relative flex min-w-0 flex-col">
       <div ref={chartRef} />
     </div>
   );

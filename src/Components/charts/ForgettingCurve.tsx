@@ -162,13 +162,15 @@ export default function ForgettingCurve({ data }: ForgettingCurveProps) {
   useCharts(chartRef, option, chartClass, setChartClass);
 
   return (
-    <div ref={chartParentRef} className="card mw-100 overflow-auto" style={{ border: 0 }}>
+    <div ref={chartParentRef} className="relative flex min-w-0 max-w-full flex-col overflow-auto">
       <div ref={chartRef} />
-      <div className="px-3 pb-2">
-        <small className="text-muted">
-          Stability factor: {data.eFactor.toFixed(2)} · Current interval: {data.interval} day{data.interval !== 1 ? "s" : ""} · Repetition #{data.repetitionNumber}
-        </small>
-      </div>
+      <p className="m-0 px-4 pb-2 text-body-sm text-muted-foreground">
+        Stability factor: <span className="font-mono text-mono-sm">{data.eFactor.toFixed(2)}</span> · Current interval:{" "}
+        <span className="font-mono text-mono-sm">
+          {data.interval} day{data.interval !== 1 ? "s" : ""}
+        </span>{" "}
+        · Repetition <span className="font-mono text-mono-sm">#{data.repetitionNumber}</span>
+      </p>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useContext, useEffect } from "react";
+import { LoaderCircle } from "lucide-react";
 import { AppContext } from "../store/AppProvider";
 import { UPDATE_LOGGED_IN_USER_NAME } from "../store/reducers/loggedInReducer.mjs";
 import { userToken } from "../constants.mjs";
@@ -19,10 +20,9 @@ function Callback() {
   }, [setName, auth.isAuthenticated]);
 
   return (
-    <div className="text-center" style={{ minHeight: "-webkit-fill-available", minWidth: "-webkit-fill-available", position: "absolute", display: "flex" }}>
-      <div className="spinner-border" role="status" style={{ margin: "auto" }}>
-        <span className="visually-hidden">Loading...</span>
-      </div>
+    <div className="absolute inset-0 flex items-center justify-center bg-background text-center" role="status">
+      <LoaderCircle aria-hidden="true" className="size-8 animate-spin text-muted-foreground" />
+      <span className="sr-only">Loading...</span>
     </div>
   );
 }

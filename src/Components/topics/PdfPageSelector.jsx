@@ -1,7 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
-import { Modal, ModalBody, ModalFooter, ModalHeader, ModalTitle, Button } from "react-bootstrap";
+import { useState, useCallback } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { PDFDocument } from "pdf-lib";
+import { Check, File as FileIcon, FileText, LoaderCircle } from "lucide-react";
+import { Button } from "@/Components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/Components/ui/dialog";
+import { cn } from "@/lib/utils";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 
@@ -20,15 +23,8 @@ export default function PdfPageSelector({ file, onConfirm, onCancel }) {
   const [step, setStep] = useState("choose"); // "choose" | "select"
   const [numPages, setNumPages] = useState(null);
   const [selectedPages, setSelectedPages] = useState(new Set());
-  const [fileUrl, setFileUrl] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [loadError, setLoadError] = useState(null);
-
-  useEffect(() => {
-    const url = URL.createObjectURL(file);
-    setFileUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
 
   const onDocumentLoadSuccess = useCallback(({ numPages: total }) => {
     setNumPages(total);
@@ -99,118 +95,128 @@ export default function PdfPageSelector({ file, onConfirm, onCancel }) {
     }
   };
 
+  const handleOpenChange = (open) => {
+    if (!open) onCancel();
+  };
+
   if (step === "choose") {
     return (
-      <Modal show onHide={onCancel} centered>
-        <ModalHeader closeButton>
-          <ModalTitle>Upload PDF</ModalTitle>
-        </ModalHeader>
-        <ModalBody>
-          <p className="mb-3">
-            <strong>{file.name}</strong> ({(file.size / 1024).toFixed(1)} KB)
-          </p>
-          <p>How would you like to upload this PDF?</p>
-          <div className="d-grid gap-2">
-            <Button variant="primary" onClick={handleUploadWhole}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="me-2" viewBox="0 0 16 16">
-                <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z" />
-              </svg>
-              Upload Whole PDF
-            </Button>
-            <Button variant="outline-primary" onClick={handleSelectPages}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="me-2" viewBox="0 0 16 16">
-                <path d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zM5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1H5z" />
-                <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z" />
-              </svg>
-              Select Specific Pages
-            </Button>
+      <Dialog open onOpenChange={handleOpenChange}>
+        <DialogContent aria-describedby={undefined} className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="m-0 text-headline-md">Upload PDF</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 text-body-md">
+            <p className="m-0 break-words">
+              <strong>{file.name}</strong> <span className="font-mono text-mono-md text-muted-foreground">({(file.size / 1024).toFixed(1)} KB)</span>
+            </p>
+            <p className="m-0">How would you like to upload this PDF?</p>
+            <div className="grid gap-2">
+              <Button size="lg" onClick={handleUploadWhole}>
+                <FileIcon data-icon="inline-start" />
+                Upload Whole PDF
+              </Button>
+              <Button size="lg" variant="outline" onClick={handleSelectPages}>
+                <FileText data-icon="inline-start" />
+                Select Specific Pages
+              </Button>
+            </div>
           </div>
-        </ModalBody>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     );
   }
 
   // step === "select"
   return (
-    <Modal show onHide={onCancel} centered size="lg" dialogClassName="pdf-selector-modal">
-      <ModalHeader closeButton>
-        <ModalTitle>
-          Select Pages — {file.name}
-          {numPages && <small className="text-muted ms-2">({numPages} pages)</small>}
-        </ModalTitle>
-      </ModalHeader>
-      <ModalBody style={{ maxHeight: "60vh", overflowY: "auto" }}>
-        {loadError && (
-          <div className="alert alert-danger">{loadError}</div>
-        )}
+    <Dialog open onOpenChange={handleOpenChange}>
+      <DialogContent aria-describedby={undefined} className="sm:max-w-3xl">
+        <DialogHeader>
+          <DialogTitle className="m-0 pr-8 text-headline-md break-words">
+            Select Pages — {file.name}
+            {numPages && (
+              <span className="ml-2 font-mono text-mono-md text-muted-foreground">
+                ({numPages} pages)
+              </span>
+            )}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="max-h-[60vh] overflow-y-auto">
+          {loadError && (
+            <div role="alert" className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-body-md text-destructive">
+              {loadError}
+            </div>
+          )}
 
-        {numPages && (
-          <div className="d-flex gap-2 mb-3 sticky-top bg-white py-2" style={{ zIndex: 1 }}>
-            <Button size="sm" variant="outline-secondary" onClick={selectAll}>
-              Select All
-            </Button>
-            <Button size="sm" variant="outline-secondary" onClick={deselectAll}>
-              Deselect All
-            </Button>
-            <span className="ms-auto align-self-center text-muted small">
-              {selectedPages.size} of {numPages} selected
-            </span>
-          </div>
-        )}
+          {numPages && (
+            <div className="sticky top-0 z-[1] mb-4 flex flex-wrap gap-2 bg-popover py-2">
+              <Button size="sm" variant="outline" onClick={selectAll}>
+                Select All
+              </Button>
+              <Button size="sm" variant="outline" onClick={deselectAll}>
+                Deselect All
+              </Button>
+              <span className="ml-auto self-center text-body-sm text-muted-foreground">
+                <span className="font-mono text-mono-sm">{selectedPages.size}</span> of <span className="font-mono text-mono-sm">{numPages}</span> selected
+              </span>
+            </div>
+          )}
 
-        {fileUrl && (
-          <Document file={fileUrl} onLoadSuccess={onDocumentLoadSuccess} onLoadError={onDocumentLoadError} loading={<div className="text-center py-4"><span className="spinner-border" role="status"><span className="visually-hidden">Loading PDF...</span></span></div>}>
-            <div className="d-flex flex-wrap gap-3 justify-content-center">
+          <Document
+            file={file}
+            onLoadSuccess={onDocumentLoadSuccess}
+            onLoadError={onDocumentLoadError}
+            loading={
+              <div className="flex justify-center py-6" role="status">
+                <LoaderCircle aria-hidden="true" className="size-8 animate-spin text-muted-foreground" />
+                <span className="sr-only">Loading PDF...</span>
+              </div>
+            }
+          >
+            <div className="flex flex-wrap justify-center gap-4">
               {numPages &&
-                Array.from({ length: numPages }, (_, i) => i + 1).map((pageNum) => (
-                  <div
-                    key={pageNum}
-                    className={`pdf-page-card position-relative ${selectedPages.has(pageNum) ? "selected" : ""}`}
-                    onClick={() => togglePage(pageNum)}
-                    style={{
-                      cursor: "pointer",
-                      border: selectedPages.has(pageNum) ? "3px solid #0d6efd" : "2px solid #dee2e6",
-                      borderRadius: "8px",
-                      padding: "4px",
-                      transition: "border-color 0.2s, box-shadow 0.2s",
-                      boxShadow: selectedPages.has(pageNum) ? "0 0 0 3px rgba(13,110,253,0.25)" : "none",
-                    }}
-                  >
-                    <Page pageNumber={pageNum} width={140} renderTextLayer={false} renderAnnotationLayer={false} />
-                    <div className="text-center mt-1">
-                      <small className="fw-bold">Page {pageNum}</small>
-                    </div>
-                    {selectedPages.has(pageNum) && (
-                      <div
-                        className="position-absolute top-0 end-0 bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
-                        style={{ width: "24px", height: "24px", margin: "4px" }}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                          <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z" />
-                        </svg>
+                Array.from({ length: numPages }, (_, i) => i + 1).map((pageNum) => {
+                  const selected = selectedPages.has(pageNum);
+                  return (
+                    <div
+                      key={pageNum}
+                      className={cn(
+                        "relative cursor-pointer rounded-lg p-1 transition-[border-color,box-shadow] duration-200",
+                        selected ? "border-[3px] border-primary bg-surface-container-high ring-[3px] ring-primary/25" : "border-2 border-border bg-surface-container-low",
+                      )}
+                      onClick={() => togglePage(pageNum)}
+                    >
+                      <Page pageNumber={pageNum} width={140} renderTextLayer={false} renderAnnotationLayer={false} />
+                      <div className="mt-1 text-center">
+                        <span className="font-mono text-mono-sm font-semibold">Page {pageNum}</span>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      {selected && (
+                        <div className="absolute top-0 right-0 m-1 flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                          <Check aria-hidden="true" className="size-3.5" />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
             </div>
           </Document>
-        )}
-      </ModalBody>
-      <ModalFooter>
-        <Button variant="secondary" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button variant="primary" onClick={handleConfirmSelection} disabled={selectedPages.size === 0 || isProcessing}>
-          {isProcessing ? (
-            <>
-              <span className="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
-              Processing...
-            </>
-          ) : (
-            `Upload ${selectedPages.size} Page${selectedPages.size !== 1 ? "s" : ""}`
-          )}
-        </Button>
-      </ModalFooter>
-    </Modal>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmSelection} disabled={selectedPages.size === 0 || isProcessing}>
+            {isProcessing ? (
+              <>
+                <LoaderCircle data-icon="inline-start" aria-hidden="true" className="animate-spin" />
+                Processing...
+              </>
+            ) : (
+              `Upload ${selectedPages.size} Page${selectedPages.size !== 1 ? "s" : ""}`
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
