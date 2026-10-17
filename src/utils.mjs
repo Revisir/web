@@ -1,3 +1,5 @@
+import { getConfig } from "./config.mjs";
+
 export const signOutRedirect = async () => {
   const clientId = "6chhv3rf7dik3j5gbjic2f9g82";
   const logoutUri = `${getConfig("FE_CLIENT_URL")}`;
