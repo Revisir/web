@@ -31,6 +31,12 @@ export default defineConfig([
     rules: { "react/jsx-uses-vars": "error" },
   },
   {
+    // shadcn's registry imports `cn` straight from the package; the configured one knows the Stitch type scale.
+    files: ["src/**/*.{js,jsx,mjs,ts,tsx}"],
+    ignores: ["src/lib/utils.ts"],
+    rules: { "no-restricted-imports": ["error", { paths: [{ name: "cn", message: "Import cn from @/lib/utils." }] }] },
+  },
+  {
     // shadcn files export variant helpers beside their components.
     files: ["src/Components/ui/**"],
     rules: { "react-refresh/only-export-components": "off" },

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { cn } from "cn"
+import { cn } from "@/lib/utils"
 import { Progress as ProgressPrimitive } from "radix-ui"
 
 function Progress({
@@ -16,6 +16,7 @@ function Progress({
         "relative flex h-1 w-full items-center overflow-x-hidden rounded-full bg-muted",
         className
       )}
+      value={value}
       {...props}
     >
       <ProgressPrimitive.Indicator
