@@ -20,7 +20,6 @@ export default function StatusBadge({ tone = "neutral", icon, children }: Status
   return (
     <Badge className={`h-auto rounded-md px-2 py-0.5 ${TONE_CLASSES[tone]}`}>
       {icon}
-      {/* The type scale sits on an inner span: cn() reads text-mono-sm as a text color and would drop it beside the tone's color. */}
       <span className="font-mono text-mono-sm font-semibold">{children}</span>
     </Badge>
   );

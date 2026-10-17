@@ -9,10 +9,7 @@ function Callback() {
   const { setName } = useContext(AppContext);
   const auth = useAuth();
   useEffect(() => {
-    console.log(auth.isAuthenticated);
-    console.log(auth?.user);
     if (auth?.user) {
-      console.log(auth?.user);
       const { id_token, profile } = auth.user;
       sessionStorage.setItem(userToken, id_token.toString());
       setName({ payload: { name: profile["preferred_username"].toUpperCase() }, type: UPDATE_LOGGED_IN_USER_NAME });

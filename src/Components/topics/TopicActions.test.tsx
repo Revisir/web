@@ -403,6 +403,8 @@ describe("TopicDetails review area", () => {
 
     expect(await screen.findByRole("button", { name: "Start quiz (5 questions)" })).toBeEnabled();
 
+    // The sections start collapsed, and a collapsed section renders nothing.
+    await user.click(screen.getByRole("button", { name: "Materials" }));
     await user.click(screen.getByRole("button", { name: "Save URLs" }));
 
     await waitFor(() => expect(updateTopicMock).toHaveBeenCalledWith("t1", { urls: ["https://example.com/krebs"] }));

@@ -7,12 +7,3 @@ export function extractRevisionBooleans({ lastRevised, revisionDate }: { lastRev
   const today: boolean = revised || next_revision <= DateTime.now();
   return { revised, today, next_revision };
 }
-
-export function reviseBtnText(revised: boolean, isHovering: boolean) {
-  let btnString = revised ? "Revised" : "Revise";
-
-  if (isHovering) {
-    btnString = revised ? "Undo Revise" : "Revise Now";
-  }
-  return btnString;
-}
