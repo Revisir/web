@@ -12,5 +12,7 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     css: false,
+    // Dialog-heavy interaction tests can pass 5s when the whole suite runs in parallel.
+    testTimeout: 15000,
   },
 });

@@ -31,7 +31,7 @@ describe("TopicModal", () => {
   });
 
   it("creates a topic with its name, subject, date and links, then closes", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     const setShowModal = vi.fn();
     renderWithProviders(<TopicModal setShowModal={setShowModal} />);
 
@@ -65,7 +65,7 @@ describe("TopicModal", () => {
   });
 
   it("sends today's date and no links when they are left alone", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderWithProviders(<TopicModal setShowModal={vi.fn()} />);
 
     await user.type(screen.getByLabelText("Topic Name"), "Glycolysis");
@@ -78,7 +78,7 @@ describe("TopicModal", () => {
   });
 
   it("does not submit without a name and subject", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderWithProviders(<TopicModal setShowModal={vi.fn()} />);
 
     await user.click(screen.getByRole("button", { name: "Create" }));
@@ -89,7 +89,7 @@ describe("TopicModal", () => {
   });
 
   it("pre-fills an existing topic and saves the edit through the update call", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     const setShowModal = vi.fn();
     const dateStudied = "2026-08-03T00:00:00.000Z";
     const topic = {
@@ -130,7 +130,7 @@ describe("TopicModal", () => {
   });
 
   it("closes from Cancel without saving", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     const setShowModal = vi.fn();
     renderWithProviders(<TopicModal setShowModal={setShowModal} />);
 
