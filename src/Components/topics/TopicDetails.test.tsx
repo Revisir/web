@@ -143,6 +143,25 @@ describe("TopicDetails", () => {
     expect(within(card).getByRole("button", { name: "Open in new tab" })).toHaveFocus();
   });
 
+  it("opens a file in a new tab without handing the page a window.opener", async () => {
+    const user = userEvent.setup();
+    const openSpy = vi.spyOn(window, "open").mockReturnValue(null);
+    getTopicMock.mockResolvedValue(
+      makeTopic({
+        files: [{ _id: "f1", fileName: "notes.pdf", fileType: "pdf", fileUrl: "https://files.example/notes.pdf", processingStatus: "completed" }],
+      }),
+    );
+    renderPage();
+    await user.click(await screen.findByRole("button", { name: "Materials" }));
+
+    const card = screen.getByRole("group", { name: "notes.pdf" });
+    card.focus();
+    await user.click(await within(card).findByRole("button", { name: "Open in new tab" }));
+
+    expect(openSpy).toHaveBeenCalledWith("https://files.example/notes.pdf", "_blank", "noopener,noreferrer");
+    openSpy.mockRestore();
+  });
+
   it("asks before deleting the topic, then deletes it once and goes to Today's List", async () => {
     const user = userEvent.setup();
     getTopicMock.mockResolvedValue(makeTopic());

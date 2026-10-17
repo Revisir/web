@@ -299,6 +299,8 @@ export default function TopicActions({ topic, onStartAiQuiz }: TopicActionsProps
   const now = DateTime.local();
   const view = reviewView(topic, now);
   const serverDone = view.kind === "done";
+  // Drop the local record once the server's copy catches up, so a later due state (Reset Progress, a new study date, a new day) shows the review actions again.
+  if (serverDone && recorded !== null) setRecorded(null);
   const done = serverDone || recorded !== null;
   const bank = topic.questionBank;
   const showBank = Boolean(bank) && (bank?.state !== "none" || hasMaterials(topic));

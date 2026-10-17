@@ -69,6 +69,9 @@ export function useDueQueue() {
     queryFn: fetchDueQueue,
     // The app's default staleTime is Infinity, which would otherwise skip focus refetches.
     refetchOnWindowFocus: "always",
+    // The header keeps this query mounted on every page, so opening Today's List refetches it
+    // to pick up a question bank that finished while the learner was on the topic page.
+    refetchOnMount: "always",
   });
   const { refetch } = query;
 

@@ -38,11 +38,12 @@ function dueTopic(id: string, overrides: Partial<DueTopic> = {}): DueTopic {
   };
 }
 
-// Mirrors the app's client, whose staleTime of Infinity would otherwise block focus refetches.
-function renderDueQueue() {
-  const queryClient = new QueryClient({
+// Mirrors the app's client, whose staleTime of Infinity would otherwise block focus and mount refetches.
+function renderDueQueue(
+  queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity, gcTime: Infinity } },
-  });
+  }),
+) {
   const wrapper = ({ children }: { children: ReactNode }) => createElement(QueryClientProvider, { client: queryClient }, children);
   return { ...renderHook(() => useDueQueue(), { wrapper }), queryClient };
 }
@@ -80,6 +81,25 @@ describe("useDueQueue", () => {
 
     await waitFor(() => expect(result.current.data?.[0].review?.doneToday).toBe(true));
     expect(getTodaysListMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("refetches when Today's List mounts while the header keeps the query mounted", async () => {
+    const preparing = dueTopic("a", {
+      questionBank: { state: "building", usableCount: 0, rebuilding: false },
+      review: { ...review(false), normalQuiz: { available: false, reason: "preparing_questions", questionCount: 0 } },
+    });
+    getTodaysListMock.mockResolvedValueOnce({ topics: [preparing] });
+    getTodaysListMock.mockResolvedValueOnce({ topics: [dueTopic("a")] });
+
+    const header = renderDueQueue();
+    await waitFor(() => expect(header.result.current.data).toHaveLength(1));
+    expect(getTodaysListMock).toHaveBeenCalledTimes(1);
+
+    const todaysList = renderDueQueue(header.queryClient);
+
+    await waitFor(() => expect(todaysList.result.current.data?.[0].review?.normalQuiz.available).toBe(true));
+    expect(getTodaysListMock).toHaveBeenCalledTimes(2);
+    expect(header.result.current.data?.[0].questionBank?.state).toBe("ready");
   });
 
   it("refetches at each local midnight and stops after unmount", async () => {

@@ -302,7 +302,7 @@ export default function TopicDetails() {
                         <Input type="text" className="h-9 min-w-0 flex-1" placeholder="https://..." aria-label="URL" value={url} onChange={(e) => handleUrlChange(idx, e.target.value)} />
                         {saved && <AttachmentStatus status={saved.processingStatus} />}
                         {url.trim() && (
-                          <IconButton type="button" label="Open in new tab" variant="outline" className="size-9" onClick={() => window.open(url, "_blank")}>
+                          <IconButton type="button" label="Open in new tab" variant="outline" className="size-9" onClick={() => window.open(url, "_blank", "noopener,noreferrer")}>
                             <ExternalLink />
                           </IconButton>
                         )}
@@ -567,7 +567,7 @@ function FileCard({ file, topicId }) {
     >
       {showActions && (
         <div className="absolute inset-0 flex items-center justify-center gap-2 rounded-lg bg-background/80">
-          <IconButton label="Open in new tab" variant="secondary" size="icon-sm" onClick={() => window.open(fileUrl, "_blank")}>
+          <IconButton label="Open in new tab" variant="secondary" size="icon-sm" onClick={() => window.open(fileUrl, "_blank", "noopener,noreferrer")}>
             <ExternalLink />
           </IconButton>
           <IconButton label="Delete file" variant="destructive" size="icon-sm" onClick={handleDeleteFile} disabled={isFileDeleting}>

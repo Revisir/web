@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent, { type UserEvent } from "@testing-library/user-event";
-import { Link, Route, Routes } from "react-router-dom";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { Link, MemoryRouter, Route, Routes, useLocation, useNavigationType, type MemoryRouterProps } from "react-router-dom";
 import { DateTime } from "luxon";
 import NormalQuiz from "./NormalQuiz";
 import { createTestQueryClient, renderWithProviders } from "../../test/renderWithProviders";
@@ -66,9 +67,22 @@ const QUIZ_ROUTES = (
   <Routes>
     <Route path="/" element={<p>today page</p>} />
     <Route path="/topics" element={<Link to="/topic/t1/quiz" state={{ from: "/topics" }}>Start quiz</Link>} />
+    <Route path="/topic/:id" element={<p>topic page</p>} />
     <Route path="/topic/:id/quiz" element={<NormalQuiz />} />
   </Routes>
 );
+
+// The topic page pushes the quiz with itself as `from` (TopicActions).
+const STARTED_FROM_TOPIC = ["/topic/t1", { pathname: "/topic/t1/quiz", state: { from: "/topic/t1" } }];
+// The same history, but the quiz entry carries no in-app origin, as with a deep link.
+const OPENED_DIRECTLY = ["/topic/t1", "/topic/t1/quiz"];
+
+// Shows the current path and how the router got there: POP moves through existing entries,
+// so the history length is unchanged; REPLACE swaps the current entry for a new one.
+function LocationProbe() {
+  const { pathname } = useLocation();
+  return <p data-testid="location">{`${pathname} ${useNavigationType()}`}</p>;
+}
 
 // Full walkthroughs click through five questions, so they get more than the default 5s.
 const WALKTHROUGH_TIMEOUT = 15_000;
@@ -82,6 +96,21 @@ async function renderQuiz(options: Parameters<typeof renderWithProviders>[1] = {
   const view = renderWithProviders(QUIZ_ROUTES, { route: "/topic/t1/quiz", ...options });
   await screen.findByText("Question 1 of 5");
   return { user, ...view };
+}
+
+// Opens the quiz on the last of several history entries, with a location probe beside it.
+async function renderQuizInHistory(initialEntries: NonNullable<MemoryRouterProps["initialEntries"]>) {
+  const user = setupUser();
+  render(
+    <QueryClientProvider client={createTestQueryClient()}>
+      <MemoryRouter initialEntries={initialEntries} initialIndex={initialEntries.length - 1}>
+        {QUIZ_ROUTES}
+        <LocationProbe />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  await screen.findByText("Question 1 of 5");
+  return { user };
 }
 
 // Picks an option or types into the blank, then submits and waits for the reveal.
@@ -102,6 +131,20 @@ async function flag(user: UserEvent) {
 
 async function next(user: UserEvent) {
   await user.click(screen.getByRole("button", { name: "Next" }));
+}
+
+// Answers every question correctly, then presses Finish quiz on the last one.
+async function finishQuiz(user: UserEvent) {
+  for (const [position, question] of SESSION.questions.entries()) {
+    await answer(user, ANSWER_KEY[question.id]);
+    if (position < SESSION.questions.length - 1) await next(user);
+  }
+  await user.click(screen.getByRole("button", { name: "Finish quiz" }));
+}
+
+async function exitQuiz(user: UserEvent) {
+  await user.click(screen.getByRole("button", { name: "Exit quiz" }));
+  await user.click(within(await screen.findByRole("alertdialog", { name: "Leave this quiz?" })).getByRole("button", { name: "Leave quiz" }));
 }
 
 beforeEach(() => {
@@ -228,7 +271,7 @@ describe("NormalQuiz", () => {
     expect(items[3]).toHaveTextContent("Flagged, not scored");
     expect(items[3]).toHaveTextContent("Correct answer: chlorophyll");
     expect(items[4]).toHaveTextContent("Wrong");
-    expect(screen.getByRole("link", { name: "Back to Today's List" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("button", { name: "Back to Today's List" })).toBeInTheDocument();
 
     for (const queryKey of [[DUE_TOPIC_KEY], [ALL_TOPIC_KEY], [TOPIC_DETAILS_KEY, "t1"], [TOPIC_HISTORY_KEY, "t1"], [TOPIC_FORGETTING_CURVE_KEY, "t1"], ["stats"]]) {
       expect(invalidate).toHaveBeenCalledWith({ queryKey });
@@ -286,10 +329,47 @@ describe("NormalQuiz", () => {
     await user.click(screen.getByRole("link", { name: "Start quiz" }));
     await screen.findByText("Question 1 of 5");
 
-    await user.click(screen.getByRole("button", { name: "Exit quiz" }));
-    await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Leave quiz" }));
+    await exitQuiz(user);
 
     expect(await screen.findByRole("link", { name: "Start quiz" })).toBeInTheDocument();
+  });
+
+  it("goes back in history on Exit when started from the topic page, so its own Back still works", async () => {
+    const { user } = await renderQuizInHistory(STARTED_FROM_TOPIC);
+
+    await exitQuiz(user);
+
+    expect(await screen.findByText("topic page")).toBeInTheDocument();
+    expect(screen.getByTestId("location")).toHaveTextContent(/^\/topic\/t1 POP$/);
+  });
+
+  it("goes back in history from the result screen when started from the topic page", { timeout: WALKTHROUGH_TIMEOUT }, async () => {
+    const { user } = await renderQuizInHistory(STARTED_FROM_TOPIC);
+    await finishQuiz(user);
+
+    await user.click(await screen.findByRole("button", { name: "Back to the topic" }));
+
+    expect(await screen.findByText("topic page")).toBeInTheDocument();
+    expect(screen.getByTestId("location")).toHaveTextContent(/^\/topic\/t1 POP$/);
+  });
+
+  it("replaces a quiz with no in-app origin with Today's List on Exit", async () => {
+    const { user } = await renderQuizInHistory(OPENED_DIRECTLY);
+
+    await exitQuiz(user);
+
+    expect(await screen.findByText("today page")).toBeInTheDocument();
+    expect(screen.getByTestId("location")).toHaveTextContent(/^\/ REPLACE$/);
+  });
+
+  it("replaces a quiz with no in-app origin with Today's List from the result screen", { timeout: WALKTHROUGH_TIMEOUT }, async () => {
+    const { user } = await renderQuizInHistory(OPENED_DIRECTLY);
+    await finishQuiz(user);
+
+    await user.click(await screen.findByRole("button", { name: "Back to Today's List" }));
+
+    expect(await screen.findByText("today page")).toBeInTheDocument();
+    expect(screen.getByTestId("location")).toHaveTextContent(/^\/ REPLACE$/);
   });
 
   it("shows a message and a link back when the topic was already reviewed today", async () => {
@@ -300,11 +380,43 @@ describe("NormalQuiz", () => {
     expect(await screen.findByRole("heading", { name: "You already reviewed this topic today" })).toBeInTheDocument();
     expect(screen.queryByText(/Question \d of/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
-    const back = screen.getByRole("link", { name: "Back to Today's List" });
-    expect(back).toHaveAttribute("href", "/");
-
-    await user.click(back);
+    await user.click(screen.getByRole("button", { name: "Back to Today's List" }));
     expect(await screen.findByText("today page")).toBeInTheDocument();
+  });
+
+  it("says the quiz wasn't recorded when completion finds the topic already reviewed today", { timeout: WALKTHROUGH_TIMEOUT }, async () => {
+    completeQuizMock.mockRejectedValue(apiError("ALREADY_REVIEWED_TODAY", "Topic already reviewed today"));
+    const { user } = await renderQuiz();
+
+    await finishQuiz(user);
+
+    const notice = await screen.findByRole("alert");
+    expect(notice).toHaveTextContent("This topic was already reviewed today, so this quiz wasn't recorded.");
+    expect(notice).not.toHaveTextContent("Select Finish quiz to try again.");
+    expect(screen.queryByText("Quiz complete")).not.toBeInTheDocument();
+    expect(completeQuizMock).toHaveBeenCalledOnce();
+
+    await user.click(within(notice).getByRole("button", { name: "Back to Today's List" }));
+    expect(await screen.findByText("today page")).toBeInTheDocument();
+  });
+
+  it("shows a save failure after a failed completion and finishes on the next Finish quiz", { timeout: WALKTHROUGH_TIMEOUT }, async () => {
+    completeQuizMock.mockRejectedValueOnce(new Error("Network Error"));
+    const { user } = await renderQuiz();
+
+    await finishQuiz(user);
+
+    const notice = await screen.findByRole("alert");
+    expect(notice).toHaveTextContent("Your results couldn't be saved. Select Finish quiz to try again.");
+    expect(notice).toHaveTextContent("Network Error");
+    expect(screen.queryByText("Quiz complete")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Finish quiz" }));
+
+    expect(await screen.findByText("Quiz complete")).toBeInTheDocument();
+    expect(completeQuizMock).toHaveBeenCalledTimes(2);
+    expect(completeQuizMock).toHaveBeenNthCalledWith(2, "s1");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("offers a retry after a failed submit that resends the same answer", async () => {

@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
-import { act, renderHook, screen, waitFor, within } from "@testing-library/react";
+import { act, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider, focusManager } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
-import { Route, Routes, useLocation } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { DateTime } from "luxon";
 import TopicActions from "./TopicActions";
 import TopicDetails from "./TopicDetails";
-import { renderWithProviders } from "../../test/renderWithProviders";
+import { createTestQueryClient, renderWithProviders } from "../../test/renderWithProviders";
 import { getTopic, getTopicForgettingCurve, getTopicHistory, regenerateQuestions, reviseTopic, updateTopic } from "../../service/topic_service.mjs";
 import { completeChat, startChat } from "../../service/chat_service.mjs";
 import type { ReviewAvailability } from "../../hooks/useDueQueue";
@@ -252,6 +252,35 @@ describe("TopicActions", () => {
     expect(screen.getByText("Done today")).toBeInTheDocument();
     expect(screen.getByText(/already reviewed today/)).toBeInTheDocument();
     expect(reviewButtons()).toEqual([null, null, null]);
+  });
+
+  it("shows the review actions again when the topic comes due after a Done recorded here", async () => {
+    const user = userEvent.setup();
+    reviseTopicMock.mockResolvedValue({ success: true, nextRevisionDate: NEXT_REVIEW, lastRevised: TODAY, lastQuality: 4 });
+    // The page keys TopicActions by topic id, so its refetches rerender this instance rather than remount it.
+    const queryClient = createTestQueryClient();
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={["/topic/t1"]}>{children}</MemoryRouter>
+      </QueryClientProvider>
+    );
+    const { rerender } = render(<TopicActions topic={makeTopic()} onStartAiQuiz={vi.fn()} />, { wrapper });
+
+    await rateWithDone(user, /^4 Good/);
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(screen.getByText("Done today")).toBeInTheDocument();
+
+    // The refetch reports the review.
+    rerender(<TopicActions topic={doneTopic({ lastQuality: 4 })} onStartAiQuiz={vi.fn()} />);
+    expect(screen.getByText("Done today")).toBeInTheDocument();
+    expect(screen.getByText("4 · Good")).toBeInTheDocument();
+
+    // Reset Progress or a new study date makes the topic due again.
+    rerender(<TopicActions topic={makeTopic()} onStartAiQuiz={vi.fn()} />);
+    expect(screen.queryByText("Done today")).not.toBeInTheDocument();
+    expect(screen.getByText("Due today")).toBeInTheDocument();
+    expect(startQuiz()).toBeEnabled();
+    expect(doneButton()).toBeEnabled();
   });
 
   it("keeps the picker open with the error when recording fails for another reason", async () => {

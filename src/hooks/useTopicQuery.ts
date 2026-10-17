@@ -273,9 +273,9 @@ export function useTopicReset() {
   const qClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id }: { id: string }) => resetTopic(id),
+    // A reset moves the topic's schedule and clears today's review, so the due list changes too.
     onSuccess: (_, { id }) => {
-      qClient.invalidateQueries({ queryKey: [TOPIC_DETAILS_KEY, String(id)] });
-      qClient.invalidateQueries({ queryKey: [TOPIC_HISTORY_KEY, String(id)] });
+      refreshTopicSchedule(qClient, id);
     },
   });
 }

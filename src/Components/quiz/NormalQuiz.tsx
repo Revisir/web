@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, RotateCcw, X } from "lucide-react";
 import {
   AlertDialog,
@@ -20,7 +20,7 @@ import QuizResult from "./QuizResult";
 import { useQuiz } from "../../hooks/useQuiz";
 import { getApiErrorCode, getApiErrorMessage } from "../../utils/apiErrors";
 
-type BackLink = { to: string; label: string };
+type BackLink = { label: string; onBack: () => void };
 
 // Start errors the learner cannot fix by retrying (see the quiz API contract).
 const START_ERRORS: Record<string, { title: string; detail: string }> = {
@@ -50,19 +50,23 @@ export default function NormalQuiz() {
 }
 
 // Where the quiz was started from, passed as router state `from`; Today's List otherwise.
+// A quiz pushed from an in-app page goes back in history, so that page's own back control
+// still leaves it; a quiz opened directly replaces itself with Today's List.
 function useBackLink(): BackLink {
   const from: unknown = (useLocation().state as { from?: unknown } | null)?.from;
-  const to = typeof from === "string" && from.startsWith("/") && !from.startsWith("//") ? from : "/";
-  if (to === "/") return { to, label: "Back to Today's List" };
-  if (to === "/topics") return { to, label: "Back to Topics" };
-  if (to.startsWith("/topic/")) return { to, label: "Back to the topic" };
-  return { to, label: "Go back" };
+  const navigate = useNavigate();
+  const pushed = typeof from === "string" && from.startsWith("/") && !from.startsWith("//");
+  const to = pushed ? from : "/";
+  const onBack = pushed ? () => navigate(-1) : () => navigate("/", { replace: true });
+  if (to === "/") return { label: "Back to Today's List", onBack };
+  if (to === "/topics") return { label: "Back to Topics", onBack };
+  if (to.startsWith("/topic/")) return { label: "Back to the topic", onBack };
+  return { label: "Go back", onBack };
 }
 
 function QuizSessionView({ topicId }: { topicId: string }) {
   const quiz = useQuiz(topicId);
   const back = useBackLink();
-  const navigate = useNavigate();
 
   if (quiz.starting) {
     return (
@@ -103,7 +107,7 @@ function QuizSessionView({ topicId }: { topicId: string }) {
   if (quiz.completion) {
     return (
       <QuizPage>
-        <QuizResult topicName={session.topicName} questions={session.questions} completion={quiz.completion} backTo={back.to} backLabel={back.label} />
+        <QuizResult topicName={session.topicName} questions={session.questions} completion={quiz.completion} backLabel={back.label} onBack={back.onBack} />
       </QuizPage>
     );
   }
@@ -128,7 +132,7 @@ function QuizSessionView({ topicId }: { topicId: string }) {
     <QuizPage>
       <header className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
-          <ExitButton onConfirm={() => navigate(back.to, { replace: true })} />
+          <ExitButton onConfirm={back.onBack} />
           <p className="font-mono text-mono-sm whitespace-nowrap text-primary">{`Question ${quiz.index + 1} of ${total}`}</p>
         </div>
         <h1 className="text-headline-md break-words text-foreground">{session.topicName}</h1>
@@ -172,11 +176,9 @@ function QuizPage({ children }: { children: ReactNode }) {
 
 function BackButton({ back, variant = "default", size = "lg" }: { back: BackLink; variant?: "default" | "outline"; size?: "sm" | "lg" }) {
   return (
-    <Button asChild variant={variant} size={size} className={size === "lg" ? "px-4" : undefined}>
-      <Link to={back.to} replace>
-        <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-        {back.label}
-      </Link>
+    <Button type="button" variant={variant} size={size} className={size === "lg" ? "px-4" : undefined} onClick={back.onBack}>
+      <ArrowLeft aria-hidden="true" data-icon="inline-start" />
+      {back.label}
     </Button>
   );
 }

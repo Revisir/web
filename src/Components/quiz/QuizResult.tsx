@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
 import { DateTime } from "luxon";
 import { ArrowLeft, Flag } from "lucide-react";
 import { Badge } from "@/Components/ui/badge";
@@ -11,12 +10,12 @@ type QuizResultProps = {
   topicName: string;
   questions: QuizQuestion[];
   completion: QuizCompletion;
-  backTo: string;
   backLabel: string;
+  onBack: () => void;
 };
 
 /** The finished quiz: score, rating or none, next review date and each question's result (R27, R30). */
-export default function QuizResult({ topicName, questions, completion, backTo, backLabel }: QuizResultProps) {
+export default function QuizResult({ topicName, questions, completion, backLabel, onBack }: QuizResultProps) {
   const { rating, scored, correct, nextRevisionDate, results } = completion;
   const percent = scored > 0 ? Math.round((correct / scored) * 100) : null;
   const prompts = new Map(questions.map((question) => [question.id, question.prompt]));
@@ -78,11 +77,9 @@ export default function QuizResult({ topicName, questions, completion, backTo, b
         </ol>
       </section>
 
-      <Button asChild size="lg" className="self-start px-4">
-        <Link to={backTo} replace>
-          <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-          {backLabel}
-        </Link>
+      <Button type="button" size="lg" className="self-start px-4" onClick={onBack}>
+        <ArrowLeft aria-hidden="true" data-icon="inline-start" />
+        {backLabel}
       </Button>
     </section>
   );
