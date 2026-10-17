@@ -6,4 +6,8 @@ export const api = {
   },
   statistics: "/statistics",
   subjects: "/subjects",
+  apiKeys: "/api-keys",
+  apiKey: function (id) {
+    return `/api-keys/${id}`;
+  },
 };
