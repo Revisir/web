@@ -1,20 +1,58 @@
-import "./Header.css";
-
 import { useContext, useState } from "react";
+import { Link, NavLink } from "react-router-dom";
+import { LogOut, Menu, Moon, Plus, Sun } from "lucide-react";
+import { Badge } from "@/Components/ui/badge";
+import { Button } from "@/Components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/Components/ui/dropdown-menu";
+import IconButton from "@/Components/common/IconButton";
 import { AppContext } from "../../store/AppProvider";
 import { REMOVE_LOGGED_IN_USER_NAME } from "../../store/reducers/loggedInReducer.mjs";
 import { TOGGLE_THEME } from "../../store/reducers/themeReducer.mjs";
+import { countTopicsLeftToday, useDueQueue } from "../../hooks/useDueQueue";
 import TopicModal from "../topics/TopicModal";
 import { signOutRedirect } from "../../utils.mjs";
-function Header() {
-  const {
-    name: { userName },
-    setName,
-    theme,
-    dispatchTheme,
-  } = useContext(AppContext);
-  const loggedIn = Boolean(userName ?? false);
+
+const NAV_ITEMS = [
+  { to: "/", label: "Today's List", end: true, showDueCount: true },
+  { to: "/topics", label: "Topics" },
+  { to: "/stats", label: "Stats" },
+];
+
+// NavLink marks the current route with aria-current="page".
+const NAV_LINK_CLASS =
+  "flex items-center gap-2 rounded-lg px-3 py-1.5 text-label-md text-muted-foreground no-underline transition-colors hover:bg-surface-container hover:text-foreground aria-[current=page]:bg-surface-container-high aria-[current=page]:text-primary";
+const MENU_LINK_CLASS = "no-underline text-foreground aria-[current=page]:font-medium aria-[current=page]:text-primary";
+
+function DueCountBadge({ count }) {
+  if (!count) return null;
+  return <Badge className="h-auto rounded bg-warning px-1.5 font-mono text-mono-sm font-semibold text-warning-foreground">{count} due</Badge>;
+}
+
+function BrandLink() {
+  return (
+    <Link to="/" className="flex shrink-0 items-center gap-2 text-foreground no-underline hover:text-foreground">
+      <img src="/Reviser.png" alt="" className="h-8 w-auto" />
+      <span className="text-headline-sm font-semibold">Reviser</span>
+    </Link>
+  );
+}
+
+function ThemeToggle() {
+  const { theme, dispatchTheme } = useContext(AppContext);
+  const isDark = theme === "dark";
+  return (
+    <IconButton label={isDark ? "Switch to light mode" : "Switch to dark mode"} onClick={() => dispatchTheme({ type: TOGGLE_THEME })}>
+      {isDark ? <Sun /> : <Moon />}
+    </IconButton>
+  );
+}
+
+function SignedInBar() {
+  const { setName } = useContext(AppContext);
   const [showAddModal, setShowAddModal] = useState(false);
+  const { data: dueTopics } = useDueQueue();
+  const dueCount = countTopicsLeftToday(dueTopics);
+
   const handleLogout = async () => {
     setName({ payload: { name: "" }, type: REMOVE_LOGGED_IN_USER_NAME });
     signOutRedirect();
@@ -22,73 +60,79 @@ function Header() {
   const addNewTopic = () => {
     setShowAddModal(true);
   };
-  const handleToggleTheme = () => {
-    dispatchTheme({ type: TOGGLE_THEME });
-  };
-  const isDark = theme === "dark";
+
   return (
-    <div>
-      <div className="container">
-        <header className="d-flex align-items-center justify-content-between py-3 mb-4 border-bottom">
-          <div className="d-sm-none" style={{ width: "1px" }}></div>
-          <a href="/" className="d-flex align-items-center  link-body-emphasis text-decoration-none">
-            <img className="bi me-2" width="34" height="32" aria-label="Bootstrap" src="/Reviser.png" />
-            <h3 className="mb-0 mt-1">Reviser</h3>
-          </a>
-          {loggedIn ? (
-            <div className="d-flex align-items-end justify-content-center">
-              <div className="me-4 header__icon" onClick={handleToggleTheme} title={isDark ? "Switch to light mode" : "Switch to dark mode"} role="button" aria-label="Toggle theme">
-                {isDark ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" className="bi bi-sun-fill" viewBox="0 0 16 16">
-                    <path d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8M8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0m0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13m8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5M3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8m10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0m-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0m9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707M4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708" />
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" className="bi bi-moon-fill" viewBox="0 0 16 16">
-                    <path d="M6 .278a.77.77 0 0 1 .08.858 7.2 7.2 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277q.792-.001 1.533-.16a.79.79 0 0 1 .81.316.73.73 0 0 1-.031.893A8.35 8.35 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.75.75 0 0 1 6 .278" />
-                  </svg>
-                )}
-              </div>
-              <div className="me-4 d-none d-sm-block header__icon" onClick={addNewTopic}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" className="bi bi-patch-plus" viewBox="0 0 16 16">
-                  <path fillRule="evenodd" d="M8 5.5a.5.5 0 0 1 .5.5v1.5H10a.5.5 0 0 1 0 1H8.5V10a.5.5 0 0 1-1 0V8.5H6a.5.5 0 0 1 0-1h1.5V6a.5.5 0 0 1 .5-.5" />
-                  <path d="m10.273 2.513-.921-.944.715-.698.622.637.89-.011a2.89 2.89 0 0 1 2.924 2.924l-.01.89.636.622a2.89 2.89 0 0 1 0 4.134l-.637.622.011.89a2.89 2.89 0 0 1-2.924 2.924l-.89-.01-.622.636a2.89 2.89 0 0 1-4.134 0l-.622-.637-.89.011a2.89 2.89 0 0 1-2.924-2.924l.01-.89-.636-.622a2.89 2.89 0 0 1 0-4.134l.637-.622-.011-.89a2.89 2.89 0 0 1 2.924-2.924l.89.01.622-.636a2.89 2.89 0 0 1 4.134 0l-.715.698a1.89 1.89 0 0 0-2.704 0l-.92.944-1.32-.016a1.89 1.89 0 0 0-1.911 1.912l.016 1.318-.944.921a1.89 1.89 0 0 0 0 2.704l.944.92-.016 1.32a1.89 1.89 0 0 0 1.912 1.911l1.318-.016.921.944a1.89 1.89 0 0 0 2.704 0l.92-.944 1.32.016a1.89 1.89 0 0 0 1.911-1.912l-.016-1.318.944-.921a1.89 1.89 0 0 0 0-2.704l-.944-.92.016-1.32a1.89 1.89 0 0 0-1.912-1.911z" />
-                </svg>
-              </div>
-              <div className="header__icon" onClick={handleLogout}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" className="bi bi-box-arrow-right" viewBox="0 0 16 16">
-                  <path
-                    fillRule="evenodd"
-                    d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0z"
-                  />
-                  <path fillRule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708z" />
-                </svg>
-              </div>
-            </div>
-          ) : (
-            <div className="d-flex align-items-center">
-              <div className="header__icon" onClick={handleToggleTheme} title={isDark ? "Switch to light mode" : "Switch to dark mode"} role="button" aria-label="Toggle theme">
-                {isDark ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" className="bi bi-sun-fill" viewBox="0 0 16 16">
-                    <path d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8M8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0m0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13m8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5M3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8m10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0m-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0m9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707M4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708" />
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" className="bi bi-moon-fill" viewBox="0 0 16 16">
-                    <path d="M6 .278a.77.77 0 0 1 .08.858 7.2 7.2 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277q.792-.001 1.533-.16a.79.79 0 0 1 .81.316.73.73 0 0 1-.031.893A8.35 8.35 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.75.75 0 0 1 6 .278" />
-                  </svg>
-                )}
-              </div>
-            </div>
-          )}
-        </header>
+    <>
+      <div className="flex min-w-0 items-center gap-6">
+        <BrandLink />
+        <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
+          {NAV_ITEMS.map(({ to, label, end, showDueCount }) => (
+            <NavLink key={to} to={to} end={end} className={NAV_LINK_CLASS}>
+              <span>{label}</span>{" "}
+              {showDueCount && <DueCountBadge count={dueCount} />}
+            </NavLink>
+          ))}
+        </nav>
       </div>
-      <div className="popUp__addTopic d-sm-none d-block" onClick={addNewTopic}>
-        <svg xmlns="http://www.w3.org/2000/svg" width="2.5rem" height="2.5rem" fill="currentColor" className="bi bi-plus-circle" viewBox="0 0 16 16">
-          <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
-          <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4" />
-        </svg>
+      <div className="flex items-center gap-1">
+        <Button className="mr-2 hidden md:inline-flex" onClick={addNewTopic}>
+          <Plus data-icon="inline-start" />
+          New Topic
+        </Button>
+        <ThemeToggle />
+        <IconButton label="Sign out" onClick={handleLogout}>
+          <LogOut />
+        </IconButton>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <IconButton label="Open navigation" className="md:hidden">
+              <Menu />
+            </IconButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            {NAV_ITEMS.map(({ to, label, end, showDueCount }) => (
+              <DropdownMenuItem key={to} asChild>
+                <NavLink to={to} end={end} className={MENU_LINK_CLASS}>
+                  <span>{label}</span>{" "}
+                  {showDueCount && (
+                    <span className="ml-auto">
+                      <DueCountBadge count={dueCount} />
+                    </span>
+                  )}
+                </NavLink>
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={addNewTopic}>
+              <Plus />
+              New Topic
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       {showAddModal && <TopicModal setShowModal={setShowAddModal} />}
-    </div>
+    </>
+  );
+}
+
+function Header() {
+  const {
+    name: { userName },
+  } = useContext(AppContext);
+  const loggedIn = Boolean(userName ?? false);
+  return (
+    <header className="sticky top-0 z-40 mb-6 border-b border-border bg-background/95 backdrop-blur">
+      <div className="flex h-16 items-center justify-between gap-4">
+        {loggedIn ? (
+          <SignedInBar />
+        ) : (
+          <>
+            <BrandLink />
+            <ThemeToggle />
+          </>
+        )}
+      </div>
+    </header>
   );
 }
 

@@ -1,15 +1,15 @@
-import "./App.css";
 import Header from "./Components/header/Header";
 import Footer from "./Components/footer/Footer";
 import { useContext } from "react";
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import Callback from "./Components/Callback";
-import ListTabs from "./Components/ListTabs";
 import Login from "./Components/Login";
 import TopicDetails from "./Components/topics/TopicDetails";
+import TodayPage from "./pages/TodayPage";
+import TopicsPage from "./pages/TopicsPage";
+import StatsPage from "./pages/StatsPage";
+import NormalQuiz from "./Components/quiz/NormalQuiz";
 import { AppContext, AppProvider } from "./store/AppProvider";
-import { userToken } from "./constants.mjs";
-// import { signInWithRedirect } from "aws-amplify/auth";
 
 function App() {
   return (
@@ -21,11 +21,11 @@ function App() {
 
 function AppLayout() {
   return (
-    <div className="container d-flex flex-column" style={{ minHeight: "100vh" }}>
+    <div className="mx-auto flex min-h-screen w-full max-w-[1320px] flex-col px-3">
       <Header />
-      <div className="flex-grow-1">
+      <main className="grow">
         <Outlet />
-      </div>
+      </main>
       <Footer />
     </div>
   );
@@ -40,8 +40,13 @@ function PrimaryApp() {
     <>
       <Routes>
         <Route element={<AppLayout />}>
-          <Route path="/" element={loggedIn ? <ListTabs /> : <Login />} />
-          <Route path="/topic/:id" element={loggedIn ? <TopicDetails /> : <Navigate to="/" />} />
+          <Route path="/" element={loggedIn ? <TodayPage /> : <Login />} />
+          <Route element={loggedIn ? <Outlet /> : <Navigate to="/" replace />}>
+            <Route path="/topics" element={<TopicsPage />} />
+            <Route path="/stats" element={<StatsPage />} />
+            <Route path="/topic/:id" element={<TopicDetails />} />
+            <Route path="/topic/:id/quiz" element={<NormalQuiz />} />
+          </Route>
         </Route>
         <Route path="/callback" element={loggedIn ? <Navigate to={"/"} /> : <Callback />} />
       </Routes>

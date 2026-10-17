@@ -1,32 +1,41 @@
 import { useAuth } from "react-oidc-context";
 import { useState } from "react";
+import { LoaderCircle } from "lucide-react";
+import { Button } from "@/Components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader } from "@/Components/ui/card";
 
 function Login() {
   const auth = useAuth();
   const [loading, setLoading] = useState(false);
   return (
-    //TODO important responsivness
-    <>
-      <div className="container ">
-        <div className="card text-center" style={{ background: "#f6f3eb" }}>
-          <div className="card-body p-4">
-            <h5 className="card-title p-2 mb-4 mt-3">Welcome to Reviser App</h5>
-            <button
-              className="btn my-2 w-100"
-              style={{ background: "#FB7B76", color: "white" }}
-              onClick={() => {
-                setLoading(true);
-                auth.signinRedirect();
-              }}
-            >
-              {loading && <span className="spinner-border spinner-border-sm" aria-hidden="true"></span>}
-              {!loading && <span role="status">Login</span>}
-            </button>
-          </div>
-          <div className="card-footer text-body-secondary">App by Rjnishant</div>
-        </div>
-      </div>
-    </>
+    <div className="flex justify-center py-12">
+      <Card className="w-full max-w-sm text-center">
+        <CardHeader>
+          <h1 className="m-0 py-2 text-headline-md text-card-foreground">Welcome to Reviser App</h1>
+        </CardHeader>
+        <CardContent>
+          <Button
+            size="lg"
+            className="w-full"
+            aria-busy={loading || undefined}
+            onClick={() => {
+              setLoading(true);
+              auth.signinRedirect();
+            }}
+          >
+            {loading ? (
+              <>
+                <LoaderCircle aria-hidden="true" className="animate-spin" />
+                <span className="sr-only">Signing in...</span>
+              </>
+            ) : (
+              "Login"
+            )}
+          </Button>
+        </CardContent>
+        <CardFooter className="justify-center text-body-sm text-muted-foreground">App by Rjnishant</CardFooter>
+      </Card>
+    </div>
   );
 }
 

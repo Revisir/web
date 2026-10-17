@@ -1,9 +1,21 @@
-import { Modal, ModalBody, ModalFooter, ModalHeader, ModalTitle } from "react-bootstrap";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
+import { DateTime } from "luxon";
+import { LoaderCircle, Plus, X } from "lucide-react";
+import { Button } from "@/Components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/Components/ui/dialog";
+import { Input } from "@/Components/ui/input";
+import { Label } from "@/Components/ui/label";
+import { Textarea } from "@/Components/ui/textarea";
+import IconButton from "@/Components/common/IconButton";
 import { useTopicCreate, useTopicUpdate } from "../../hooks/useTopicQuery";
 import { useSubjectSuggestions } from "../../hooks/useSubjectSuggestions";
-import { DateTime } from "luxon";
 
+const FIELD_CLASS = "grid gap-2";
+
+/**
+ * Creates a topic, or edits `topic` when one is passed.
+ * @param {{ setShowModal: (show: boolean) => void, topic?: object }} props
+ */
 export default function TopicModal({ setShowModal, topic }) {
   const isEdit = !!topic;
 
@@ -56,85 +68,97 @@ export default function TopicModal({ setShowModal, topic }) {
   };
 
   return (
-    <Modal show onHide={handleClose} centered>
-      <ModalHeader closeButton>
-        <ModalTitle>{isEdit ? "Edit Topic" : "Topic"}</ModalTitle>
-      </ModalHeader>
-      <ModalBody>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="form-floating mb-3">
-            <input id="topicName" type="text" className={`form-control ${errors.topicName ? "is-invalid" : ""}`} placeholder="What did you learn today?" {...register("topicName", { required: true })} autoComplete="off" />
-            <label htmlFor="topicName">Topic Name</label>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) handleClose();
+      }}
+    >
+      <DialogContent aria-describedby={undefined} className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="m-0 text-headline-md">{isEdit ? "Edit Topic" : "New Topic"}</DialogTitle>
+        </DialogHeader>
+        {/* react-hook-form validates; the browser's date range check would block editing an older topic. */}
+        <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+          <div className={FIELD_CLASS}>
+            <Label htmlFor="topicName">Topic Name</Label>
+            <Input id="topicName" type="text" className="h-9" placeholder="What did you learn today?" aria-invalid={errors.topicName ? true : undefined} {...register("topicName", { required: true })} autoComplete="off" />
           </div>
-          <div className="form-floating mb-3">
-            <input id="subjectName" type="text" className={`form-control ${errors.subjectName ? "is-invalid" : ""}`} placeholder="Which Subject?" {...register("subjectName", { required: true })} list="subjectSuggestions" autoComplete="off" />
-            <label htmlFor="subjectName">Subject</label>
+          <div className={FIELD_CLASS}>
+            <Label htmlFor="subjectName">Subject</Label>
+            <Input
+              id="subjectName"
+              type="text"
+              className="h-9"
+              placeholder="Which Subject?"
+              aria-invalid={errors.subjectName ? true : undefined}
+              {...register("subjectName", { required: true })}
+              list="subjectSuggestions"
+              autoComplete="off"
+            />
             <datalist id="subjectSuggestions">
               {subjects.map((s) => (
                 <option key={s} value={s} />
               ))}
             </datalist>
           </div>
-          <div className="form-floating mb-3">
-            <input className="form-control" type="date" max={maxDate} min={minDate} defaultValue={maxDate} id="dateStudied" {...register("dateStudied")} />
-            <label htmlFor="dateStudied">Date Learnt</label>
+          <div className={FIELD_CLASS}>
+            <Label htmlFor="dateStudied">Date Learnt</Label>
+            <Input className="h-9 font-mono" type="date" max={maxDate} min={minDate} defaultValue={maxDate} id="dateStudied" {...register("dateStudied")} />
           </div>
-          <div className="form-floating mb-3">
-            <textarea className="form-control" maxLength={200} style={{ height: "100px", resize: "none" }} type="text" id="description" placeholder="Describe it more?" {...register("description")} />
-            <label htmlFor="description">Describe it</label>
+          <div className={FIELD_CLASS}>
+            <Label htmlFor="description">Describe it</Label>
+            <Textarea className="h-[100px] resize-none field-sizing-fixed" maxLength={200} id="description" placeholder="Describe it more?" {...register("description")} />
           </div>
-          <div className="mb-3">
-            <label htmlFor="basic-url" className="form-label">
+          <div role="group" aria-labelledby="topicLinksLabel" className={FIELD_CLASS}>
+            <span id="topicLinksLabel" className="text-sm leading-none font-medium">
               Links
-            </label>
+            </span>
             {fields.map((field, index) => {
               const isLast = index === fields.length - 1;
               return (
-                <div className="input-group mb-3" key={field.id}>
-                  <input
+                <div className="flex gap-2" key={field.id}>
+                  <Input
                     type="text"
-                    className={`form-control ${errors.urls?.[index]?.value ? "is-invalid" : ""}`}
+                    className="h-9 flex-1"
                     placeholder="Link"
                     aria-label="Link"
                     autoComplete="off"
+                    aria-invalid={errors.urls?.[index]?.value ? true : undefined}
                     {...register(`urls.${index}.value`, { required: !isLast, pattern: !isLast ? /^https?:\/\/.+/ : undefined })}
                   />
                   {!isLast ? (
-                    <button className="btn btn-outline-secondary d-flex align-items-center justify-content-center" type="button" id="add more" style={{ padding: "2px 5px", verticalAlign: "center" }} onClick={() => remove(index)}>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" className="bi bi-x" viewBox="0 0 16 16">
-                        <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708" />
-                      </svg>
-                    </button>
+                    <IconButton type="button" label="Remove link" variant="outline" className="size-9" onClick={() => remove(index)}>
+                      <X />
+                    </IconButton>
                   ) : (
-                    <button className="btn btn-outline-secondary d-flex align-items-center justify-content-center" type="button" id="add more" style={{ padding: "2px 5px", verticalAlign: "center" }} onClick={() => append()}>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" className="bi bi-plus" viewBox="0 0 16 16">
-                        <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4" />
-                      </svg>
-                    </button>
+                    <IconButton type="button" label="Add link" variant="outline" className="size-9" onClick={() => append()}>
+                      <Plus />
+                    </IconButton>
                   )}
                 </div>
               );
             })}
           </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={handleClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? (
+                <>
+                  <LoaderCircle data-icon="inline-start" aria-hidden="true" className="animate-spin" />
+                  <span role="status">{isEdit ? "Saving..." : "Creating..."}</span>
+                </>
+              ) : isEdit ? (
+                "Save"
+              ) : (
+                "Create"
+              )}
+            </Button>
+          </DialogFooter>
         </form>
-      </ModalBody>
-      <ModalFooter>
-        <button className="btn btn-danger" onClick={handleClose}>
-          Cancel
-        </button>
-        <button className="btn btn-success" onClick={handleSubmit(onSubmit)} disabled={isPending}>
-          {isPending ? (
-            <>
-              <span className="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
-              <span role="status">{isEdit ? "Saving..." : "Creating..."}</span>
-            </>
-          ) : isEdit ? (
-            "Save"
-          ) : (
-            "Create"
-          )}
-        </button>
-      </ModalFooter>
-    </Modal>
+      </DialogContent>
+    </Dialog>
   );
 }

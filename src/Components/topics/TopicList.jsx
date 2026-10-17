@@ -1,7 +1,12 @@
 import { useState, useMemo } from "react";
+import { CornerDownLeft, LoaderCircle } from "lucide-react";
+import { Button } from "@/Components/ui/button";
+import { Input } from "@/Components/ui/input";
 import TopicListItem from "./TopicListItem";
 import { useTopicsList } from "../../hooks/useTopicQuery";
-import { useReactTable, getCoreRowModel, getSortedRowModel, flexRender } from "@tanstack/react-table";
+import { useReactTable, getCoreRowModel, getSortedRowModel } from "@tanstack/react-table";
+
+const ADDON_CLASS = "inline-flex shrink-0 items-center justify-center border border-input bg-surface-container px-3 text-muted-foreground";
 
 export default function TopicList({ listKey, loader }) {
   const [addingTopic, setAddingTopic] = useState(false);
@@ -41,56 +46,40 @@ export default function TopicList({ listKey, loader }) {
   return (
     <>
       {!isFetched ? (
-        <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "200px", height: "100%" }}>
-          <div className="spinner-border" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
+        <div className="flex h-full min-h-[200px] items-center justify-center" role="status">
+          <LoaderCircle aria-hidden="true" className="size-8 animate-spin text-muted-foreground" />
+          <span className="sr-only">Loading...</span>
         </div>
       ) : (
         <div>
-          {/* Sorting Headers */}
-          {/* <div className="d-flex border-bottom py-2 px-3 bg-light fw-semibold small">
-            {table.getHeaderGroups().map((headerGroup) =>
-              headerGroup.headers.map((header) => (
-                <div
-                  key={header.id}
-                  className="flex-fill"
-                  style={{ cursor: "pointer", userSelect: "none" }}
-                  onClick={header.column.getToggleSortingHandler()}
-                >
-                  {flexRender(header.column.columnDef.header, header.getContext())}
-                  {{ asc: " ▲", desc: " ▼" }[header.column.getIsSorted()] ?? ""}
-                </div>
-              ))
-            )}
-          </div> */}
-
           {/* List Items */}
-          <div className="list-group">
+          <div className="flex flex-col divide-y divide-border overflow-hidden rounded-lg border border-border bg-card text-card-foreground">
             {table.getRowModel().rows.map((row) => (
               <TopicListItem key={row.original._id} id={row.original._id} />
             ))}
 
-            <div className="list-group-item list-group-item-action">
+            <div className="px-4 py-2">
               <form autoComplete="off" onSubmit={handleQuickAdd} onFocus={() => setInputActive(true)} onBlur={() => setInputActive(false)}>
-                <div className="input-group">
+                <div className="flex w-full items-stretch">
                   {addingTopic && (
-                    <span className="input-group-text" id="basic-addon2" style={{ width: "45px" }}>
-                      <span className="spinner-border spinner-border-sm" aria-hidden="true"></span>
-                      <span className="visually-hidden" role="status">
+                    <span className={`${ADDON_CLASS} w-[45px] rounded-l-lg border-r-0`}>
+                      <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
+                      <span className="sr-only" role="status">
                         Loading...
                       </span>
                     </span>
                   )}
-                  <input id="newTopicName" className="form-control" type="text" placeholder="Quickly Add New Topic" aria-label="quickly add new topic" disabled={addingTopic} />
+                  <Input
+                    id="newTopicName"
+                    className={`h-9 flex-1 ${addingTopic ? "rounded-l-none" : ""} ${inputActive ? "rounded-r-none" : ""}`}
+                    type="text"
+                    placeholder="Quickly Add New Topic"
+                    aria-label="quickly add new topic"
+                    disabled={addingTopic}
+                  />
                   {inputActive && (
-                    <span className="input-group-text" id="basic-addon2">
-                      <svg width="20" height="20" viewBox="0 0 20 20">
-                        <g stroke="currentColor" fill="none" fillRule="evenodd" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M18 3v4c0 2-2 4-4 4H2"></path>
-                          <path d="M8 17l-6-6 6-6"></path>
-                        </g>
-                      </svg>
+                    <span className={`${ADDON_CLASS} rounded-r-lg border-l-0`}>
+                      <CornerDownLeft aria-hidden="true" className="size-4" />
                     </span>
                   )}
                 </div>
@@ -100,17 +89,17 @@ export default function TopicList({ listKey, loader }) {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="d-flex justify-content-between align-items-center px-3 py-2">
-              <small className="text-muted">
-                Page {page} of {totalPages}
-              </small>
-              <div className="btn-group btn-group-sm">
-                <button className="btn btn-outline-secondary" onClick={() => setPage((p) => p - 1)} disabled={page <= 1}>
+            <div className="flex items-center justify-between px-4 py-2">
+              <span className="text-body-sm text-muted-foreground">
+                Page <span className="font-mono text-mono-sm">{page}</span> of <span className="font-mono text-mono-sm">{totalPages}</span>
+              </span>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => p - 1)} disabled={page <= 1}>
                   Previous
-                </button>
-                <button className="btn btn-outline-secondary" onClick={() => setPage((p) => p + 1)} disabled={page >= totalPages}>
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => p + 1)} disabled={page >= totalPages}>
                   Next
-                </button>
+                </Button>
               </div>
             </div>
           )}
