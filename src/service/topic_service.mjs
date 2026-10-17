@@ -68,6 +68,12 @@ export async function resetTopic(id) {
   return response?.data;
 }
 
+// Replaces the topic's question bank; resolves to `{ questionBank }` once the rebuild is queued (202).
+export async function regenerateQuestions(id) {
+  const response = await axios.post(api.topicQuestionsRegenerate(id));
+  return response?.data;
+}
+
 export async function generateMindMap(id) {
   const response = await axios.post(`${api.topic(id)}/mindmap`);
   return response?.data;

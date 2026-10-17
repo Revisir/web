@@ -7,14 +7,14 @@ import MindElixir from "mind-elixir";
 import "mind-elixir/style.css";
 import TopicModal from "./TopicModal";
 import RevisionChat from "./RevisionChat";
+import TopicActions from "./TopicActions";
 import PdfPageSelector from "./PdfPageSelector";
 import ForgettingCurve from "../charts/ForgettingCurve";
 import { Pencil, RotateCcw, Trash2 } from "lucide-react";
 import IconButton from "../common/IconButton";
-import { useTopicDetails, useTopicHistory, useTopicForgettingCurve, useTopicRevise, useTopicDelete, useTopicFileUpload, useTopicFileDelete, useTopicReset, useTopicUpdate, useTopicMindMapGenerate, TOPIC_DETAILS_KEY } from "../../hooks/useTopicQuery";
-import { extractRevisionBooleans, reviseBtnText } from "../../utils/topics.utils";
-import useHover from "../../hooks/useHover";
+import { useTopicDetails, useTopicHistory, useTopicForgettingCurve, useTopicDelete, useTopicFileUpload, useTopicFileDelete, useTopicReset, useTopicUpdate, useTopicMindMapGenerate, useRefreshTopicAfterReview, TOPIC_DETAILS_KEY } from "../../hooks/useTopicQuery";
 import useThemeColors from "../../hooks/useThemeColors";
+import { getApiErrorMessage } from "../../utils/apiErrors";
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function TopicDetails() {
@@ -26,16 +26,13 @@ export default function TopicDetails() {
   const [showResetModal, setShowResetModal] = useState(false);
 
   const [showChat, setShowChat] = useState(false);
-  const [showQualityModal, setShowQualityModal] = useState(false);
 
-  let revised = false,
-    today = false;
   const { isFetched, data: topic } = useTopicDetails(id);
   const { data: historyObj } = useTopicHistory(id);
   const history = historyObj?.history;
   const { data: forgettingCurveData } = useTopicForgettingCurve(id);
 
-  const { isPending: isRevising, mutate: reviseTopic } = useTopicRevise();
+  const refreshAfterReview = useRefreshTopicAfterReview();
   const { mutate: deleteTopic } = useTopicDelete();
   const { isPending: isUploading, mutate: uploadFiles, error: uploadError, reset: resetUpload } = useTopicFileUpload();
   const { isPending: isUpdating, mutate: updateTopic } = useTopicUpdate();
@@ -44,10 +41,6 @@ export default function TopicDetails() {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploadStatus, setUploadStatus] = useState(null);
   const [pdfToProcess, setPdfToProcess] = useState(null); // PDF file awaiting page selection
-
-  const [reviseBtnRef, reviseBtnHovering] = useHover();
-  ({ revised, today } = useMemo(() => extractRevisionBooleans({ lastRevised: topic?.lastRevised, revisionDate: topic?.revisionDate }), [topic]));
-  const btnString = reviseBtnText(revised, reviseBtnHovering);
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files);
@@ -103,9 +96,9 @@ export default function TopicDetails() {
   };
 
   const [urls, setUrls] = useState([]);
-  const urlsInitialized = useRef(false);
-  if (topic && !urlsInitialized.current) {
-    urlsInitialized.current = true;
+  const [urlsInitialized, setUrlsInitialized] = useState(false);
+  if (topic && !urlsInitialized) {
+    setUrlsInitialized(true);
     setUrls(topic.urls?.length ? [...topic.urls.map((u) => u.url || u), ""] : [""]);
   }
 
@@ -133,21 +126,10 @@ export default function TopicDetails() {
     }
   };
 
-  const hasContent = topic?.files?.length > 0 || topic?.urls?.some((u) => /^https?:\/\//.test(u.url || u));
-
-  const handleReviseClick = () => {
-    if (revised) {
-      reviseTopic({ id, quality: { userQuality: 1 } });
-    } else if (hasContent) {
-      setShowChat(true);
-    } else {
-      setShowQualityModal(true);
-    }
-  };
-
-  const handleChatClose = (quality) => {
+  // The chat records its own review (or finds the topic already reviewed today), so the page only refetches.
+  const handleChatClose = (userQuality) => {
     setShowChat(false);
-    if (quality) reviseTopic({ id, quality: { userQuality: quality } });
+    if (userQuality != null) refreshAfterReview(id);
   };
 
   if (!isFetched) {
@@ -200,15 +182,7 @@ export default function TopicDetails() {
             <strong>Date Studied:</strong> {topic.dateStudied ? DateTime.fromISO(topic.dateStudied).toLocaleString(DateTime.DATE_MED) : "N/A"}
           </div>
 
-          <div className="mb-3">
-            <strong>Next Revision:</strong> {DateTime.fromISO(topic.revisionDate).toLocaleString(DateTime.DATE_MED_WITH_WEEKDAY)}
-          </div>
-
-          <div className="mt-4 text-end">
-            <Button ref={reviseBtnRef} title={revised ? "Mark as Not Revised" : "Revised Topic Today"} variant={!today ? "secondary" : "success"} onClick={handleReviseClick} disabled={isRevising || !today}>
-              {!today ? "Can't Revise Today" : btnString}
-            </Button>
-          </div>
+          <TopicActions key={topic._id} topic={topic} onStartAiQuiz={() => setShowChat(true)} />
 
           <Accordion alwaysOpen className="mt-4 mx-sm-neg mb-sm-neg">
             <Accordion.Item eventKey="materials">
@@ -404,37 +378,6 @@ export default function TopicDetails() {
       {showChat && <RevisionChat topicId={id} onClose={handleChatClose} />}
 
       {pdfToProcess && <PdfPageSelector file={pdfToProcess} onConfirm={handlePdfConfirm} onCancel={handlePdfCancel} />}
-
-      <Modal show={showQualityModal} onHide={() => setShowQualityModal(false)} centered>
-        <ModalHeader closeButton>
-          <ModalTitle>Select Quality</ModalTitle>
-        </ModalHeader>
-        <ModalBody>
-          <p>How well did you recall this topic?</p>
-          <div className="d-grid gap-2">
-            {[5, 4, 3, 2, 1].map((q) => (
-              <Button
-                key={q}
-                variant="outline-success"
-                onClick={() => {
-                  setShowQualityModal(false);
-                  reviseTopic({ id, quality: { userQuality: q } });
-                }}
-              >
-                {q} - {q === 5 ? "Perfect" : q === 4 ? "Good" : q === 3 ? "Fair" : q === 2 ? "Poor" : "Very Poor"}
-              </Button>
-            ))}
-          </div>
-          <div className="alert alert-info d-flex align-items-center mt-3 mb-0 py-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="me-2 flex-shrink-0" viewBox="0 0 16 16">
-              <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z" />
-            </svg>
-            <span>
-              Upload a file or add a URL to revise with <strong>Reviser</strong> tutor!
-            </span>
-          </div>
-        </ModalBody>
-      </Modal>
     </div>
   );
 }
@@ -523,11 +466,7 @@ export function MindMapView({ topic }) {
           )}
         </Button>
         {error && (
-          <div className="alert alert-danger mt-3 mb-0">
-            {error.response?.data?.error?.code === "AI_NOT_CONFIGURED"
-              ? "AI is not set up. Please contact the administrator to configure AI services."
-              : error.response?.data?.error?.message || error.message}
-          </div>
+          <div className="alert alert-danger mt-3 mb-0">{getApiErrorMessage(error)}</div>
         )}
       </div>
     );
