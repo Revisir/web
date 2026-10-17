@@ -9,6 +9,7 @@ import TopicDetails from "./Components/topics/TopicDetails";
 import TodayPage from "./pages/TodayPage";
 import TopicsPage from "./pages/TopicsPage";
 import StatsPage from "./pages/StatsPage";
+import NormalQuiz from "./Components/quiz/NormalQuiz";
 import { AppContext, AppProvider } from "./store/AppProvider";
 
 function App() {
@@ -31,11 +32,6 @@ function AppLayout() {
   );
 }
 
-// Stands in for the normal quiz page until U13 builds it.
-function QuizPage() {
-  return <p className="text-body-md text-muted-foreground">The quiz is not available yet.</p>;
-}
-
 function PrimaryApp() {
   const {
     name: { userName },
@@ -50,7 +46,7 @@ function PrimaryApp() {
             <Route path="/topics" element={<TopicsPage />} />
             <Route path="/stats" element={<StatsPage />} />
             <Route path="/topic/:id" element={<TopicDetails />} />
-            <Route path="/topic/:id/quiz" element={<QuizPage />} />
+            <Route path="/topic/:id/quiz" element={<NormalQuiz />} />
           </Route>
         </Route>
         <Route path="/callback" element={loggedIn ? <Navigate to={"/"} /> : <Callback />} />

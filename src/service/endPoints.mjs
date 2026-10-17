@@ -6,4 +6,8 @@ export const api = {
   },
   statistics: "/statistics",
   subjects: "/subjects",
+  quizStart: "/quiz/start",
+  quizSession: function (sessionId) {
+    return `/quiz/${sessionId}`;
+  },
 };

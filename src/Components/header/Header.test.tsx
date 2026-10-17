@@ -25,6 +25,13 @@ vi.mock("../topics/TopicDetails", () => ({
   },
 }));
 vi.mock("../Stats", () => ({ default: () => <p>stats charts</p> }));
+vi.mock("../queue/DueQueue", () => ({ default: () => <p>due queue</p> }));
+vi.mock("../quiz/NormalQuiz", () => ({
+  default: function NormalQuizMock() {
+    const { id } = useParams();
+    return <p>normal quiz: {id}</p>;
+  },
+}));
 vi.mock("../Login", () => ({ default: () => <p>login screen</p> }));
 
 const getTodaysListMock = vi.mocked(getTodaysList);
@@ -164,7 +171,7 @@ describe("Header", () => {
 
 describe("App routes", () => {
   it.each([
-    ["/", "Today's List", "topic list: dueTopics"],
+    ["/", "Today's List", "due queue"],
     ["/topics", "Topics", "topic list: allTopics"],
     ["/stats", "Stats", "stats charts"],
   ])("renders the %s page", async (route, heading, content) => {
@@ -182,10 +189,10 @@ describe("App routes", () => {
     expect(screen.getByText("topic details: t42")).toBeInTheDocument();
   });
 
-  it("renders the quiz placeholder at /topic/:id/quiz", () => {
+  it("renders the normal quiz at /topic/:id/quiz", () => {
     logIn();
     renderWithProviders(<App />, { route: "/topic/t42/quiz" });
-    expect(screen.getByText("The quiz is not available yet.")).toBeInTheDocument();
+    expect(screen.getByText("normal quiz: t42")).toBeInTheDocument();
     expect(screen.queryByText(/topic details/)).not.toBeInTheDocument();
   });
 
