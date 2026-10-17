@@ -226,7 +226,8 @@ describe("DueQueue", () => {
     await user.click(within(editor).getByRole("button", { name: "Close editor" }));
 
     expect(screen.queryByRole("dialog", { name: "Edit topic" })).not.toBeInTheDocument();
-    await waitFor(() => expect(getTodaysListMock).toHaveBeenCalledTimes(2));
+    // Closing without saving changes nothing; a saved edit refetches through useTopicUpdate.
+    expect(getTodaysListMock).toHaveBeenCalledTimes(1);
   });
 
   it("asks for confirmation before deleting a topic", async () => {

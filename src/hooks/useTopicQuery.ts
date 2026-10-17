@@ -11,6 +11,7 @@ export const MIN_TOPIC_DETAILS = "less_details";
 export const TOPIC_DETAILS_KEY = "details_Topic";
 export const TOPIC_HISTORY_KEY = "history_Topic";
 export const TOPIC_FORGETTING_CURVE_KEY = "forgettingCurve_Topic";
+export const STATS_KEY = "stats";
 
 export type ProcessingStatus = "pending" | "processing" | "completed" | "failed";
 
@@ -77,7 +78,7 @@ function refreshTopicSchedule(qClient: QueryClient, id: string) {
     qClient.invalidateQueries({ queryKey: [ALL_TOPIC_KEY] }),
     qClient.invalidateQueries({ queryKey: [TOPIC_HISTORY_KEY, String(id)] }),
     qClient.invalidateQueries({ queryKey: [TOPIC_FORGETTING_CURVE_KEY, String(id)] }),
-    qClient.invalidateQueries({ queryKey: ["stats"] }),
+    qClient.invalidateQueries({ queryKey: [STATS_KEY] }),
   ]);
 }
 
@@ -151,6 +152,12 @@ export function useRefreshTopicAfterReview() {
   return useCallback((id: string) => refreshTopicSchedule(qClient, id), [qClient]);
 }
 
+/** Refetches the topic page and the due list after a change to the topic's questions, such as a flag. */
+export function useRefreshTopicViews() {
+  const qClient = useQueryClient();
+  return useCallback((id: string) => refreshTopicViews(qClient, id), [qClient]);
+}
+
 export function useTopicUpdate() {
   const qClient = useQueryClient();
   return useMutation({
@@ -202,7 +209,7 @@ export function useTopicDelete() {
       qClient.invalidateQueries({ queryKey: [ALL_TOPIC_KEY] });
       qClient.invalidateQueries({ queryKey: [TOPIC_DETAILS_KEY, String(id)] });
       qClient.invalidateQueries({ queryKey: [TOPIC_HISTORY_KEY, String(id)] });
-      qClient.invalidateQueries({ queryKey: ["stats"] });
+      qClient.invalidateQueries({ queryKey: [STATS_KEY] });
     },
   });
 }
@@ -219,7 +226,7 @@ export function useTopicCreate() {
         }
       }
       qClient.invalidateQueries({ queryKey: [ALL_TOPIC_KEY] });
-      qClient.invalidateQueries({ queryKey: ["stats"] });
+      qClient.invalidateQueries({ queryKey: [STATS_KEY] });
     },
   });
 }

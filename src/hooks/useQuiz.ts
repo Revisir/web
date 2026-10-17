@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { completeQuiz, flagQuizQuestion, startQuiz, submitQuizAnswer, type QuizAnswerResult } from "../service/quiz_service";
-import { ALL_TOPIC_KEY, DUE_TOPIC_KEY, TOPIC_DETAILS_KEY, TOPIC_FORGETTING_CURVE_KEY, TOPIC_HISTORY_KEY } from "./useTopicQuery";
+import { useRefreshTopicAfterReview, useRefreshTopicViews } from "./useTopicQuery";
 
 /** A graded answer together with what the learner sent. */
 export type RevealedAnswer = QuizAnswerResult & { response: string };
@@ -14,7 +14,8 @@ type FlagVariables = { sessionId: string; questionId: string };
  * question at a time. Nothing is recorded until `finish`; leaving earlier records no rating (R28).
  */
 export function useQuiz(topicId: string) {
-  const queryClient = useQueryClient();
+  const refreshTopicViews = useRefreshTopicViews();
+  const refreshAfterReview = useRefreshTopicAfterReview();
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, RevealedAnswer>>({});
   const [flagged, setFlagged] = useState<Record<string, true>>({});
@@ -37,21 +38,15 @@ export function useQuiz(topicId: string) {
     onSuccess: (_, { questionId }) => {
       setFlagged((previous) => ({ ...previous, [questionId]: true }));
       // A flag retires the question at once, so the topic's question count changes even if the quiz is left.
-      queryClient.invalidateQueries({ queryKey: [DUE_TOPIC_KEY] });
-      queryClient.invalidateQueries({ queryKey: [TOPIC_DETAILS_KEY, String(topicId)] });
+      refreshTopicViews(topicId);
     },
   });
 
   const completeMutation = useMutation({
     mutationFn: (sessionId: string) => completeQuiz(sessionId),
     onSuccess: () => {
-      // [DUE_TOPIC_KEY] is a prefix of DUE_QUEUE_KEY, so this refreshes the queue too.
-      queryClient.invalidateQueries({ queryKey: [DUE_TOPIC_KEY] });
-      queryClient.invalidateQueries({ queryKey: [ALL_TOPIC_KEY] });
-      queryClient.invalidateQueries({ queryKey: [TOPIC_DETAILS_KEY, String(topicId)] });
-      queryClient.invalidateQueries({ queryKey: [TOPIC_HISTORY_KEY, String(topicId)] });
-      queryClient.invalidateQueries({ queryKey: [TOPIC_FORGETTING_CURVE_KEY, String(topicId)] });
-      queryClient.invalidateQueries({ queryKey: ["stats"] });
+      // Also refetches the due list, whose key prefixes the queue's.
+      refreshAfterReview(topicId);
     },
   });
 

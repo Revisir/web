@@ -1,6 +1,6 @@
 import { ToggleGroup, ToggleGroupItem } from "@/Components/ui/toggle-group";
 import { cn } from "@/lib/utils";
-import { RATINGS, RATING_LABELS } from "../../utils/ratings";
+import { hasIntervals, RATINGS, RATING_LABELS } from "../../utils/ratings";
 
 type RatingPickerProps = {
   // The chosen rating, or null before one is chosen. 0 is a real rating (R31).
@@ -17,10 +17,6 @@ const RATING_TONES = ["text-destructive", "text-destructive", "text-warning", "t
 
 function inDays(days: number) {
   return `in ${days} ${days === 1 ? "day" : "days"}`;
-}
-
-function hasIntervals(intervals: RatingPickerProps["intervals"]): intervals is readonly number[] {
-  return Array.isArray(intervals) && intervals.length === RATINGS.length && intervals.every((days) => typeof days === "number" && Number.isFinite(days));
 }
 
 /** The 0–5 recall rating, labeled Blackout to Perfect (KTD18), with each rating's next interval when known. */

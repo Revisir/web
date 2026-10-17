@@ -12,3 +12,8 @@ export function ratingLabel(rating: number): string {
   const index = Math.min(5, Math.max(0, Math.round(rating)));
   return RATING_LABELS[index];
 }
+
+// Next intervals are usable only when every rating 0–5 has a finite day count.
+export function hasIntervals(intervals: readonly number[] | null | undefined): intervals is readonly number[] {
+  return Array.isArray(intervals) && intervals.length === RATINGS.length && intervals.every((days) => typeof days === "number" && Number.isFinite(days));
+}

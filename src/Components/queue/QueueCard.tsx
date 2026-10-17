@@ -1,6 +1,5 @@
 import { useId, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { DateTime } from "luxon";
 import { AlarmClock, ArrowRight, CalendarClock, CircleCheck, EllipsisVertical, ListChecks, Pencil, Sparkles, Trash2, TriangleAlert } from "lucide-react";
 import { Button } from "@/Components/ui/button";
 import { Card, CardContent } from "@/Components/ui/card";
@@ -10,6 +9,7 @@ import MetricChip from "@/Components/common/MetricChip";
 import StatusBadge from "@/Components/common/StatusBadge";
 import type { DueTopic, ReviewAvailability, ReviewReason } from "../../hooks/useDueQueue";
 import { formatRating, ratingLabel } from "../../utils/ratings";
+import { formatDate, isNumber, pluralize, REVIEW_REASON_TEXT, reviewReasonText } from "../../utils/review";
 
 type QueueCardProps = {
   topic: DueTopic;
@@ -20,31 +20,8 @@ type QueueCardProps = {
   onDelete: (topic: DueTopic) => void;
 };
 
-const REASON_TEXT: Record<ReviewReason, string> = {
-  done_today: "Already reviewed today",
-  not_due: "Not due yet",
-  no_materials: "No materials",
-  not_enough_questions: "Not enough questions yet",
-  ai_not_configured: "AI is not set up",
-  materials_processing: "Materials are still processing",
-  preparing_questions: "Questions are being prepared",
-  extraction_failed: "Materials could not be read",
-  no_questions: "No questions left",
-};
 
 const LINK_CLASS = "inline-flex items-center gap-1 text-label-md text-primary no-underline hover:underline";
-
-function pluralize(count: number, word: string) {
-  return `${count} ${word}${count === 1 ? "" : "s"}`;
-}
-
-function isNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
-}
-
-function formatDate(iso: string) {
-  return DateTime.fromISO(iso).toLocaleString(DateTime.DATE_MED);
-}
 
 function TopicStatus({ topic, overdueDays }: { topic: DueTopic; overdueDays: number }) {
   if (topic.review?.doneToday) {
@@ -79,14 +56,14 @@ function ReasonText({ reason, topicId }: { reason: ReviewReason | null; topicId:
   if (reason === "no_questions") {
     return (
       <>
-        {REASON_TEXT.no_questions} —{" "}
+        {REVIEW_REASON_TEXT.no_questions} —{" "}
         <Link to={`/topic/${topicId}`} className="text-primary underline underline-offset-4">
           regenerate them on the topic page
         </Link>
       </>
     );
   }
-  return <>{reason ? REASON_TEXT[reason] : "Not available right now"}</>;
+  return <>{reviewReasonText(reason)}</>;
 }
 
 function DoneSummary({ topic }: { topic: DueTopic }) {

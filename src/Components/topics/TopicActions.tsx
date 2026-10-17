@@ -20,7 +20,8 @@ import RatingPicker from "../rating/RatingPicker";
 import type { QuestionBankSummary, ReviewReason } from "../../hooks/useDueQueue";
 import { useTopicQuestionsRegenerate, useTopicRevise, type TopicDetail } from "../../hooks/useTopicQuery";
 import { getApiErrorCode, getApiErrorMessage } from "../../utils/apiErrors";
-import { formatRating, ratingLabel } from "../../utils/ratings";
+import { formatRating, hasIntervals, ratingLabel } from "../../utils/ratings";
+import { formatDate, isNumber, pluralize, reviewReasonText } from "../../utils/review";
 
 type TopicActionsProps = {
   topic: TopicDetail;
@@ -38,33 +39,11 @@ type ReviewView =
 // A review recorded from this page, shown until the refetched topic reports it.
 type RecordedReview = { rating: number; nextRevisionDate?: string } | { alreadyReviewed: true };
 
-// Worded as on the queue cards (QueueCard), apart from pointers to this page.
-const REASON_TEXT: Record<ReviewReason, string> = {
-  done_today: "Already reviewed today",
-  not_due: "Not due yet",
-  no_materials: "No materials",
-  not_enough_questions: "Not enough questions yet",
-  ai_not_configured: "AI is not set up",
-  materials_processing: "Materials are still processing",
-  preparing_questions: "Questions are being prepared",
-  extraction_failed: "Materials could not be read",
-  no_questions: "No questions left. Regenerate them below",
-};
-
-function pluralize(count: number, word: string) {
-  return `${count} ${word}${count === 1 ? "" : "s"}`;
-}
-
-function isNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
-}
-
-function formatDate(iso: string) {
-  return DateTime.fromISO(iso).toLocaleString(DateTime.DATE_MED_WITH_WEEKDAY);
-}
+// The queue cards' wording, pointing to Regenerate on this page.
+const PAGE_REASON_TEXT = { no_questions: "No questions left. Regenerate them below" };
 
 function reasonText(reason: ReviewReason | null) {
-  return reason ? REASON_TEXT[reason] : "Not available right now";
+  return reviewReasonText(reason, PAGE_REASON_TEXT);
 }
 
 function hasMaterials(topic: TopicDetail) {
@@ -135,7 +114,7 @@ function DoneSummary({ rating, nextRevisionDate, alreadyReviewed }: { rating?: n
       {nextRevisionDate && (
         <Detail label="Next review">
           <time dateTime={nextRevisionDate} className="font-mono text-mono-lg text-foreground">
-            {formatDate(nextRevisionDate)}
+            {formatDate(nextRevisionDate, DateTime.DATE_MED_WITH_WEEKDAY)}
           </time>
         </Detail>
       )}
@@ -224,7 +203,7 @@ function DoneForm({ topicName, intervals, recording, error, onRecord }: DoneForm
       <DialogHeader>
         <DialogTitle className="m-0">Rate your recall</DialogTitle>
         <DialogDescription className="m-0">
-          How well did you remember "{topicName}"?{intervals?.length === 6 && " Each rating shows when the topic comes back."}
+          How well did you remember "{topicName}"?{hasIntervals(intervals) && " Each rating shows when the topic comes back."}
         </DialogDescription>
       </DialogHeader>
       <RatingPicker value={rating} onChange={setRating} intervals={intervals} disabled={recording} label="Recall rating" />

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { LoaderCircle } from "lucide-react";
 import { Card, CardContent } from "@/Components/ui/card";
 import { getMainStats } from "../service/stats-service.mjs";
+import { STATS_KEY } from "../hooks/useTopicQuery";
 import CalendarHeatMap from "./charts/CalendarHeatmap";
 import SunBurstBook from "./charts/SunBurstBook";
 import CalendarCount from "./charts/CalendarCount";
@@ -20,7 +21,7 @@ function StatCard({ label, value }) {
 
 function Stats() {
   const { isFetched, data } = useQuery({
-    queryKey: ["stats"],
+    queryKey: [STATS_KEY],
     queryFn: getMainStats,
     retry: 3,
   });

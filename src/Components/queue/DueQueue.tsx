@@ -21,7 +21,7 @@ import QueueFilters, { type QueueFilterOption } from "./QueueFilters";
 import RevisionChat from "../topics/RevisionChat";
 import TopicModal from "../topics/TopicModal";
 import { DUE_QUEUE_KEY, useDueQueue, type DueTopic } from "../../hooks/useDueQueue";
-import { ALL_TOPIC_KEY, TOPIC_DETAILS_KEY, TOPIC_FORGETTING_CURVE_KEY, TOPIC_HISTORY_KEY, useTopicDelete } from "../../hooks/useTopicQuery";
+import { useRefreshTopicAfterReview, useTopicDelete } from "../../hooks/useTopicQuery";
 import { getApiErrorMessage } from "../../utils/apiErrors";
 
 const ALL = "all";
@@ -134,6 +134,7 @@ export default function DueQueue() {
   const queryClient = useQueryClient();
   const { data: topics, isPending, error, refetch } = useDueQueue();
   const { mutate: deleteTopic } = useTopicDelete();
+  const refreshAfterReview = useRefreshTopicAfterReview();
 
   const [chatTopicId, setChatTopicId] = useState<string | null>(null);
   const [editingTopic, setEditingTopic] = useState<DueTopic | null>(null);
@@ -148,18 +149,17 @@ export default function DueQueue() {
   // rating came back, the topic's other views, which the app's cache never marks stale on its own.
   const closeChat = (topicId: string, userQuality: number | null) => {
     setChatTopicId(null);
-    refreshQueue();
-    if (userQuality == null) return;
-    for (const queryKey of [[TOPIC_DETAILS_KEY, topicId], [TOPIC_HISTORY_KEY, topicId], [TOPIC_FORGETTING_CURVE_KEY, topicId], [ALL_TOPIC_KEY], ["stats"]]) {
-      queryClient.invalidateQueries({ queryKey });
+    if (userQuality == null) {
+      refreshQueue();
+      return;
     }
+    refreshAfterReview(topicId);
   };
 
-  // Topic edits do not update the queue's cache, so refetch it once the form closes.
+  // A saved edit refetches the queue through useTopicUpdate; a cancelled one changes nothing.
   const closeEditor = (show: boolean) => {
     if (show) return;
     setEditingTopic(null);
-    refreshQueue();
   };
 
   const confirmDelete = () => {
