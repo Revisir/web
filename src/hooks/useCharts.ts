@@ -1,18 +1,28 @@
 import * as echarts from "echarts";
 import { type Dispatch, type RefObject, type SetStateAction, useEffect } from "react";
 
+/**
+ * Creates one ECharts instance on `chartRef`'s element, applies `option` to it each time the
+ * option object changes (new data or a theme switch), and disposes the instance on unmount.
+ * The instance lives in the caller's state so useDynamicWidth can resize it.
+ */
 export default function useCharts(chartRef: RefObject<HTMLDivElement | null>, option: echarts.EChartsOption, chartClass: echarts.ECharts | undefined, setChartClass: Dispatch<SetStateAction<echarts.ECharts | undefined>>) {
   useEffect(() => {
-    if (!chartRef.current || chartClass) return;
-    const chart = echarts.init(chartRef.current, null, {
+    const element = chartRef.current;
+    if (!element) return;
+    const chart = echarts.init(element, null, {
       renderer: "svg",
       useDirtyRect: false,
     });
-    chart.setOption(option);
     setChartClass(chart);
 
     return () => {
-      if (chartClass) echarts.dispose(chartClass);
+      chart.dispose();
+      setChartClass(undefined);
     };
-  }, [chartClass, option, chartRef, setChartClass]);
+  }, [chartRef, setChartClass]);
+
+  useEffect(() => {
+    chartClass?.setOption(option);
+  }, [chartClass, option]);
 }

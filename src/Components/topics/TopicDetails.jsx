@@ -14,6 +14,7 @@ import IconButton from "../common/IconButton";
 import { useTopicDetails, useTopicHistory, useTopicForgettingCurve, useTopicRevise, useTopicDelete, useTopicFileUpload, useTopicFileDelete, useTopicReset, useTopicUpdate, useTopicMindMapGenerate, TOPIC_DETAILS_KEY } from "../../hooks/useTopicQuery";
 import { extractRevisionBooleans, reviseBtnText } from "../../utils/topics.utils";
 import useHover from "../../hooks/useHover";
+import useThemeColors from "../../hooks/useThemeColors";
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function TopicDetails() {
@@ -438,10 +439,45 @@ export default function TopicDetails() {
   );
 }
 
-function MindMapView({ topic }) {
+/** A mind-elixir theme from the app's color tokens. mind-elixir does not follow the page theme on its own. */
+function toMindMapTheme(colors) {
+  return {
+    name: `Reviser ${colors.mode}`,
+    type: colors.mode,
+    palette: colors.chart,
+    cssVar: {
+      "--main-color": colors.foreground,
+      "--main-bgcolor": colors.surfaceContainerHigh,
+      "--main-bgcolor-transparent": `color-mix(in srgb, ${colors.surfaceContainerHigh} 80%, transparent)`,
+      "--main-border": `1px solid ${colors.border}`,
+      "--color": colors.mutedForeground,
+      "--bgcolor": colors.surfaceContainerLow,
+      "--selected": colors.primary,
+      "--accent-color": colors.primary,
+      "--root-color": colors.primaryForeground,
+      "--root-bgcolor": colors.primary,
+      "--root-border-color": "transparent",
+      "--panel-color": colors.foreground,
+      "--panel-bgcolor": colors.surfaceContainer,
+      "--panel-border-color": colors.border,
+    },
+  };
+}
+
+export function MindMapView({ topic }) {
   const containerRef = useRef(null);
+  const mindRef = useRef(null);
+  const colors = useThemeColors();
+  const mindTheme = useMemo(() => toMindMapTheme(colors), [colors]);
+  const themeRef = useRef(mindTheme);
   const { isPending, mutate: generateMindMap, error } = useTopicMindMapGenerate();
   const hasContent = topic?.files?.length > 0 || topic?.urls?.some((u) => /^https?:\/\//.test(u.url || u));
+
+  // Declared before the init effect, so on mount there is no map yet and init alone applies the theme.
+  useEffect(() => {
+    themeRef.current = mindTheme;
+    mindRef.current?.changeTheme(mindTheme);
+  }, [mindTheme]);
 
   useEffect(() => {
     if (!containerRef.current || !topic.mindMap) return;
@@ -452,8 +488,14 @@ function MindMapView({ topic }) {
       contextMenu: true,
       toolBar: true,
       nodeMenu: false,
+      theme: themeRef.current,
     });
     mind.init(JSON.parse(topic.mindMap));
+    mindRef.current = mind;
+    return () => {
+      mind.destroy();
+      mindRef.current = null;
+    };
   }, [topic.topicName, topic.mindMap]);
 
   if (!topic.mindMap) {
