@@ -3,10 +3,16 @@ export const SET_THEME = "SET_THEME";
 
 const THEME_KEY = "reviser-theme";
 
+// shadcn reads the `dark` class; Bootstrap reads data-bs-theme until U15 removes it.
+function applyTheme(theme) {
+  document.documentElement.classList.toggle("dark", theme === "dark");
+  document.documentElement.setAttribute("data-bs-theme", theme);
+}
+
 export function themeStateInit() {
   const saved = localStorage.getItem(THEME_KEY);
   const theme = saved || "light";
-  document.documentElement.setAttribute("data-bs-theme", theme);
+  applyTheme(theme);
   return { theme };
 }
 
@@ -15,13 +21,13 @@ function themeReducer(state, { type, payload }) {
     case TOGGLE_THEME: {
       const next = state.theme === "light" ? "dark" : "light";
       localStorage.setItem(THEME_KEY, next);
-      document.documentElement.setAttribute("data-bs-theme", next);
+      applyTheme(next);
       return { theme: next };
     }
     case SET_THEME: {
       const { theme } = payload;
       localStorage.setItem(THEME_KEY, theme);
-      document.documentElement.setAttribute("data-bs-theme", theme);
+      applyTheme(theme);
       return { theme };
     }
     default:

@@ -1,5 +1,3 @@
-import editAnimation from "../../lotties/edit.json";
-import deleteAnimation from "../../lotties/trashV2.json";
 import { DateTime } from "luxon";
 import { Button, Modal, ModalBody, ModalFooter, ModalHeader, ModalTitle } from "react-bootstrap";
 import { extractRevisionBooleans, reviseBtnText } from "../../utils/topics.utils";
@@ -8,7 +6,8 @@ import { useState, memo } from "react";
 
 import { useMinTopicDetails, useTopicDelete, useTopicRevise } from "../../hooks/useTopicQuery";
 import useHover from "../../hooks/useHover";
-import BsButtonWithLotties from "../lotties/BsButtonWithLotties";
+import { Pencil, Trash2 } from "lucide-react";
+import IconButton from "../common/IconButton";
 
 const TopicListItem = memo(({ id }) => {
   const navigate = useNavigate();
@@ -32,7 +31,7 @@ const TopicListItem = memo(({ id }) => {
     try {
       deleteTopic({ id: item._id });
       setShowDeleteModal(false);
-    } catch (error) {
+    } catch {
       console.error("Failed to delete topic");
     }
   };
@@ -43,7 +42,7 @@ const TopicListItem = memo(({ id }) => {
           <div
             className="flex-grow-1"
             style={{ cursor: "pointer" }}
-            onClick={(e) => {
+            onClick={() => {
               navigate(`/topic/${item._id}`);
             }}
           >
@@ -59,33 +58,32 @@ const TopicListItem = memo(({ id }) => {
             </span>
           </div>
           <div className=" d-flex gap-2 ">
-            <BsButtonWithLotties
-              id="deleteButtonIcon"
-              icon={deleteAnimation}
-              title="Delete"
-              style={{ padding: "4px", paddingBottom: "5px" }}
-              variant="danger"
-              size="sm"
-              className="d-none d-md-block"
+            <IconButton
+              label="Delete"
+              variant="destructive"
+              size="icon-sm"
+              className="hidden md:inline-flex"
               onClick={(e) => {
                 e.stopPropagation();
                 setShowDeleteModal(true);
               }}
               disabled={isDeleting}
-            />
+            >
+              <Trash2 />
+            </IconButton>
 
-            <BsButtonWithLotties
-              id="editButtonIcon"
-              icon={editAnimation}
-              title="Edit"
-              className="p-1 d-none d-md-block"
-              variant="info"
-              size="sm"
+            <IconButton
+              label="Edit"
+              variant="outline"
+              size="icon-sm"
+              className="hidden md:inline-flex"
               onClick={(e) => {
                 e.stopPropagation();
                 navigate(`/topic/${item._id}`);
               }}
-            />
+            >
+              <Pencil />
+            </IconButton>
 
             {today && (
               <Button

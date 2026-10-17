@@ -5,6 +5,7 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 import { defineConfig, globalIgnores } from "eslint/config";
 import pluginQuery from "@tanstack/eslint-plugin-query";
+import react from "eslint-plugin-react";
 
 export default defineConfig([
   globalIgnores(["dist"]),
@@ -25,5 +26,13 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    // ESLint 9 does not count JSX usage as a reference without this rule.
+    plugins: { react },
+    rules: { "react/jsx-uses-vars": "error" },
+  },
+  {
+    // shadcn files export variant helpers beside their components.
+    files: ["src/Components/ui/**"],
+    rules: { "react-refresh/only-export-components": "off" },
   },
 ]);

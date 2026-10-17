@@ -9,11 +9,8 @@ import TopicModal from "./TopicModal";
 import RevisionChat from "./RevisionChat";
 import PdfPageSelector from "./PdfPageSelector";
 import ForgettingCurve from "../charts/ForgettingCurve";
-import editAnimation from "../../lotties/edit.json";
-import deleteAnimation from "../../lotties/trashV2.json";
-import resetAnimation from "../../lotties/refresh.json";
-import LottieAnimation from "../lotties/LottiesAnimation";
-import BsButtonWithLotties from "../lotties/BsButtonWithLotties";
+import { Pencil, RotateCcw, Trash2 } from "lucide-react";
+import IconButton from "../common/IconButton";
 import { useTopicDetails, useTopicHistory, useTopicForgettingCurve, useTopicRevise, useTopicDelete, useTopicFileUpload, useTopicFileDelete, useTopicReset, useTopicUpdate, useTopicMindMapGenerate, TOPIC_DETAILS_KEY } from "../../hooks/useTopicQuery";
 import { extractRevisionBooleans, reviseBtnText } from "../../utils/topics.utils";
 import useHover from "../../hooks/useHover";
@@ -26,7 +23,6 @@ export default function TopicDetails() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
-  const [playAnimation, setPlayAnimation] = useState({ edit: false, delete: false, reset: false });
 
   const [showChat, setShowChat] = useState(false);
   const [showQualityModal, setShowQualityModal] = useState(false);
@@ -39,7 +35,7 @@ export default function TopicDetails() {
   const { data: forgettingCurveData } = useTopicForgettingCurve(id);
 
   const { isPending: isRevising, mutate: reviseTopic } = useTopicRevise();
-  const { isPending: isDeleting, mutate: deleteTopic } = useTopicDelete();
+  const { mutate: deleteTopic } = useTopicDelete();
   const { isPending: isUploading, mutate: uploadFiles, error: uploadError, reset: resetUpload } = useTopicFileUpload();
   const { isPending: isUpdating, mutate: updateTopic } = useTopicUpdate();
   const { mutate: resetTopicProgress } = useTopicReset();
@@ -131,7 +127,7 @@ export default function TopicDetails() {
     try {
       deleteTopic({ id });
       navigate("/");
-    } catch (error) {
+    } catch {
       console.error("Failed to delete topic");
     }
   };
@@ -182,9 +178,15 @@ export default function TopicDetails() {
               {topic.subjectName && <span className="badge bg-secondary">{topic.subjectName}</span>}
             </div>
             <div className="d-flex gap-2">
-              <BsButtonWithLotties id="resetButtonIcon" icon={resetAnimation} title="Reset Progress" variant="warning" className="p-1" onClick={() => setShowResetModal(true)} />
-              <BsButtonWithLotties id="deleteButtonIcon" icon={deleteAnimation} title="Delete" style={{ padding: "4px", paddingBottom: "5px" }} variant="danger" onClick={() => setShowDeleteModal(true)} />
-              <BsButtonWithLotties id="editButtonIcon" icon={editAnimation} title="Edit" className="p-1" variant="info" onClick={() => setShowEditModal(true)} />
+              <IconButton label="Reset Progress" variant="outline" onClick={() => setShowResetModal(true)}>
+                <RotateCcw />
+              </IconButton>
+              <IconButton label="Delete" variant="destructive" onClick={() => setShowDeleteModal(true)}>
+                <Trash2 />
+              </IconButton>
+              <IconButton label="Edit" variant="outline" onClick={() => setShowEditModal(true)}>
+                <Pencil />
+              </IconButton>
             </div>
           </div>
 
@@ -581,7 +583,9 @@ function FileCard({ file, topicId }) {
               <path fillRule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z" />
             </svg>
           </Button>
-          <BsButtonWithLotties id={`deleteFileBtn-${file._id}`} icon={deleteAnimation} title="Delete" variant="danger" size="sm" onClick={handleDeleteFile} disabled={isFileDeleting} style={{ padding: "4px", paddingBottom: "5px" }} />
+          <IconButton label="Delete" variant="destructive" size="icon-sm" onClick={handleDeleteFile} disabled={isFileDeleting}>
+            <Trash2 />
+          </IconButton>
         </div>
       )}
       <div className="text-center">

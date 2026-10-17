@@ -1,13 +1,211 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Bootstrap stays until U15 moves the last screens off it, in a layer below Tailwind's components and utilities (KTD21). */
+@layer theme, base, bootstrap, components, utilities;
+
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "bootstrap/dist/css/bootstrap.min.css" layer(bootstrap);
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Stitch "Cognitive Precision" roles. Dark values come from DESIGN.md; light values are the same
+   Material 3 palettes at light-scheme tones, derived once with material-color-utilities (KTD2). */
+:root {
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f0f3ff;
+  --surface-container: #ebedfa;
+  --surface-container-high: #e5e8f4;
+  --surface-container-highest: #dfe2ee;
+  --outline: #777586;
+
+  --background: #f9f9ff;
+  --foreground: #171c24;
+  --card: var(--surface-container-low);
+  --card-foreground: var(--foreground);
+  --popover: var(--surface-container);
+  --popover-foreground: var(--foreground);
+  --primary: #494bd6;
+  --primary-foreground: #ffffff;
+  --secondary: var(--surface-container);
+  --secondary-foreground: #464555;
+  --muted: var(--surface-container);
+  --muted-foreground: #464555;
+  --accent: var(--surface-container-high);
+  --accent-foreground: var(--foreground);
+  --destructive: #b62320;
+  --destructive-foreground: #ffffff;
+  --success: #006c49;
+  --success-foreground: #ffffff;
+  --warning: #855300;
+  --warning-foreground: #ffffff;
+  --border: #c7c4d7;
+  --input: #c7c4d7;
+  --ring: #494bd6;
+  --chart-1: #494bd6;
+  --chart-2: #006c49;
+  --chart-3: #855300;
+  --chart-4: #b62320;
+  --chart-5: #464555;
+  --radius: 0.5rem;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+.dark {
+  --surface-container-lowest: #0a0e16;
+  --surface-container-low: #181c24;
+  --surface-container: #1c2028;
+  --surface-container-high: #262a33;
+  --surface-container-highest: #31353e;
+  --outline: #908fa0;
+
+  --background: #0f131c;
+  --foreground: #dfe2ee;
+  --card: var(--surface-container-low);
+  --card-foreground: var(--foreground);
+  --popover: var(--surface-container);
+  --popover-foreground: var(--foreground);
+  --primary: #c0c1ff;
+  --primary-foreground: #1000a9;
+  --secondary: var(--surface-container);
+  --secondary-foreground: #c7c4d7;
+  --muted: var(--surface-container);
+  --muted-foreground: #c7c4d7;
+  --accent: var(--surface-container-high);
+  --accent-foreground: var(--foreground);
+  --destructive: #ffb4ab;
+  --destructive-foreground: #690005;
+  --success: #4edea3;
+  --success-foreground: #003824;
+  --warning: #ffb95f;
+  --warning-foreground: #472a00;
+  --border: #464554;
+  --input: #464554;
+  --ring: #c0c1ff;
+  --chart-1: #c0c1ff;
+  --chart-2: #4edea3;
+  --chart-3: #ffb95f;
+  --chart-4: #ffb4ab;
+  --chart-5: #c7c4d7;
+}
+
+@theme inline {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+  --font-heading: var(--font-sans);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-outline: var(--outline);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-surface-container-highest: var(--surface-container-highest);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --radius-sm: 0.125rem;
+  --radius-md: 0.375rem;
+  --radius-lg: var(--radius);
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
+  --radius-4xl: 2rem;
+}
+
+/* Stitch type scale: text-display-lg, text-headline-md, text-mono-sm and so on.
+   Mono sizes set only size and spacing; pair them with font-mono. */
+@theme {
+  --text-display-lg: 2.25rem;
+  --text-display-lg--line-height: 2.75rem;
+  --text-display-lg--letter-spacing: -0.025em;
+  --text-display-lg--font-weight: 600;
+  --text-headline-lg: 1.5rem;
+  --text-headline-lg--line-height: 2rem;
+  --text-headline-lg--letter-spacing: -0.02em;
+  --text-headline-lg--font-weight: 600;
+  --text-headline-md: 1.25rem;
+  --text-headline-md--line-height: 1.75rem;
+  --text-headline-md--letter-spacing: -0.015em;
+  --text-headline-md--font-weight: 500;
+  --text-headline-sm: 1rem;
+  --text-headline-sm--line-height: 1.5rem;
+  --text-headline-sm--letter-spacing: -0.01em;
+  --text-headline-sm--font-weight: 500;
+  --text-body-lg: 1rem;
+  --text-body-lg--line-height: 1.625rem;
+  --text-body-md: 0.875rem;
+  --text-body-md--line-height: 1.375rem;
+  --text-body-sm: 0.75rem;
+  --text-body-sm--line-height: 1.125rem;
+  --text-body-sm--letter-spacing: 0.01em;
+  --text-label-md: 0.8125rem;
+  --text-label-md--line-height: 1rem;
+  --text-label-md--letter-spacing: 0.01em;
+  --text-label-md--font-weight: 500;
+  --text-mono-lg: 1rem;
+  --text-mono-lg--line-height: 1.375rem;
+  --text-mono-lg--letter-spacing: -0.02em;
+  --text-mono-lg--font-weight: 500;
+  --text-mono-md: 0.8125rem;
+  --text-mono-md--line-height: 1.125rem;
+  --text-mono-md--letter-spacing: -0.01em;
+  --text-mono-md--font-weight: 500;
+  --text-mono-sm: 0.6875rem;
+  --text-mono-sm--line-height: 1rem;
+  --text-mono-sm--letter-spacing: 0.02em;
+  --text-label-sm: 0.625rem;
+  --text-label-sm--line-height: 0.875rem;
+  --text-label-sm--letter-spacing: 0.06em;
+  --text-label-sm--font-weight: 600;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+/* Transitional bridge: screens still on Bootstrap read the Stitch roles. Removed with Bootstrap in U15. */
+@layer components {
+  :root,
+  [data-bs-theme] {
+    --bs-body-bg: var(--background);
+    --bs-body-color: var(--foreground);
+    --bs-emphasis-color: var(--foreground);
+    --bs-secondary-color: var(--muted-foreground);
+    --bs-secondary-bg: var(--surface-container);
+    --bs-tertiary-bg: var(--surface-container-low);
+    --bs-border-color: var(--border);
+    --bs-body-font-family: var(--font-sans);
+    --bs-font-monospace: var(--font-mono);
+  }
 }

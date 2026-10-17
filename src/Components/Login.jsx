@@ -8,12 +8,11 @@ function Login() {
     //TODO important responsivness
     <>
       <div className="container ">
-        <div className="card text-center" style={{ background: "#f6f3eb" }}>
+        <div className="card text-center bg-card text-card-foreground">
           <div className="card-body p-4">
             <h5 className="card-title p-2 mb-4 mt-3">Welcome to Reviser App</h5>
             <button
-              className="btn my-2 w-100"
-              style={{ background: "#FB7B76", color: "white" }}
+              className="btn my-2 w-100 bg-primary text-primary-foreground hover:bg-primary/80"
               onClick={() => {
                 setLoading(true);
                 auth.signinRedirect();

@@ -3,6 +3,7 @@ import { render, type RenderOptions } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { AppProvider } from "../store/AppProvider";
+import { TooltipProvider } from "@/Components/ui/tooltip";
 
 type ProviderOptions = Omit<RenderOptions, "wrapper"> & {
   route?: string;
@@ -22,7 +23,9 @@ export function renderWithProviders(ui: ReactElement, { route = "/", queryClient
   const result = render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[route]}>
-        <AppProvider>{ui}</AppProvider>
+        <AppProvider>
+          <TooltipProvider>{ui}</TooltipProvider>
+        </AppProvider>
       </MemoryRouter>
     </QueryClientProvider>,
     options,

@@ -3,10 +3,10 @@ import "./index.css";
 import App from "./App.jsx";
 // import reportWebVitals from "./reportWebVitals";
 import { BrowserRouter } from "react-router-dom";
-import "bootstrap/dist/css/bootstrap.min.css";
 import { AuthProvider } from "react-oidc-context";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { getConfig } from "./config.mjs";
+import { TooltipProvider } from "@/Components/ui/tooltip";
 
 const authConfig = {
   authority: getConfig("FE_AUTH_AUTHORITY"),
@@ -31,7 +31,9 @@ root.render(
   <AuthProvider {...authConfig}>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <App />
+        <TooltipProvider>
+          <App />
+        </TooltipProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </AuthProvider>,
